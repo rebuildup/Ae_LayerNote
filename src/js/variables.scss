@@ -1,0 +1,53 @@
+// Base colors - Black theme
+$darkest: #000000;
+$darker: #111111;
+$dark: #222222;
+$font: #ffffff;
+$highlight: #cccccc;
+
+// Accent colors
+$primary: #0066cc;
+$secondary: #333333;
+
+// Status colors
+$active: #0066cc;
+$changed: #00cc66;
+$warning: #ffcc00;
+$error: #ff3333;
+
+// UI Size variables
+$border-radius: 4px;
+$border-radius-lg: 8px;
+$spacing-xs: 4px;
+$spacing-sm: 8px;
+$spacing-md: 12px;
+$spacing-lg: 16px;
+$spacing-xl: 24px;
+$spacing-2xl: 32px;
+
+// Font sizes
+$font-xs: 10px;
+$font-sm: 12px;
+$font-md: 14px;
+$font-lg: 16px;
+$font-xl: 18px;
+$font-2xl: 20px;
+
+// Component sizes
+$button-height: 32px;
+$input-height: 32px;
+$sidebar-width: 240px;
+$header-height: 48px;
+
+// Breakpoints
+$breakpoint-xs: 480px;
+$breakpoint-sm: 768px;
+$breakpoint-md: 1024px;
+$breakpoint-lg: 1200px;
+$breakpoint-xl: 1440px;
+
+// VSCode Layout specific
+$activity-bar-width: 48px;
+$title-bar-height: 30px;
+$status-bar-height: 22px;
+$panel-header-height: 35px;

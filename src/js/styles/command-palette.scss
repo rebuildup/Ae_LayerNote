@@ -1,0 +1,187 @@
+@use '../variables.scss' as *;
+
+.command-palette-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 10vh;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.command-palette {
+  background-color: $darker;
+  border: 1px solid $dark;
+  border-radius: $border-radius-lg;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  width: 100%;
+  max-width: 600px;
+  max-height: 70vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.command-palette__header {
+  padding: $spacing-md;
+  border-bottom: 1px solid $dark;
+  background-color: $darkest;
+}
+
+.command-palette__search {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  background-color: $dark;
+  border: 1px solid $highlight;
+  border-radius: $border-radius;
+  padding: $spacing-sm $spacing-md;
+  color: $highlight;
+}
+
+.command-palette__input {
+  background: none;
+  border: none;
+  outline: none;
+  color: $font;
+  font-size: $font-md;
+  flex: 1;
+  font-family: inherit;
+
+  &::placeholder {
+    color: $highlight;
+  }
+}
+
+.command-palette__content {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+.command-palette__group {
+  margin-bottom: $spacing-md;
+}
+
+.command-palette__group-title {
+  padding: $spacing-sm $spacing-md;
+  font-size: $font-xs;
+  font-weight: 600;
+  color: $highlight;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background-color: $darkest;
+  border-bottom: 1px solid $dark;
+}
+
+.command-palette__item {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  border-bottom: 1px solid transparent;
+
+  &:hover {
+    background-color: $dark;
+  }
+
+  &.selected {
+    background-color: $active;
+    color: white;
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.command-palette__item-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: $highlight;
+  flex-shrink: 0;
+
+  .selected & {
+    color: white;
+  }
+}
+
+.command-palette__item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.command-palette__item-title {
+  font-size: $font-sm;
+  font-weight: 500;
+  color: $font;
+  margin-bottom: $spacing-xs;
+
+  .selected & {
+    color: white;
+  }
+}
+
+.command-palette__item-description {
+  font-size: $font-xs;
+  color: $highlight;
+  line-height: 1.4;
+
+  .selected & {
+    color: rgba(255, 255, 255, 0.8);
+  }
+}
+
+.command-palette__item-shortcut {
+  font-size: $font-xs;
+  color: $highlight;
+  background-color: $dark;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  flex-shrink: 0;
+
+  .selected & {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: white;
+  }
+}
+
+.command-palette__empty {
+  padding: $spacing-xl;
+  text-align: center;
+  color: $highlight;
+  font-size: $font-sm;
+}
+
+// Responsive
+@media (max-width: $breakpoint-sm) {
+  .command-palette {
+    margin: $spacing-md;
+    max-height: 80vh;
+  }
+
+  .command-palette__header {
+    padding: $spacing-sm;
+  }
+
+  .command-palette__item {
+    padding: $spacing-sm;
+    gap: $spacing-sm;
+  }
+
+  .command-palette__item-shortcut {
+    display: none;
+  }
+}

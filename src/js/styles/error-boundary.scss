@@ -1,0 +1,165 @@
+@use '../variables.scss' as *;
+@use 'sass:color';
+
+.error-boundary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: $spacing-xl;
+  background-color: $darkest;
+  color: $font;
+}
+
+.error-boundary-content {
+  max-width: 600px;
+  text-align: left;
+  background-color: $darker;
+  padding: $spacing-2xl;
+  border-radius: $border-radius-lg;
+  border: 1px solid $dark;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.error-icon {
+  font-size: 48px;
+  margin-bottom: $spacing-xl;
+  display: block;
+}
+
+.error-boundary-content h2 {
+  color: $error;
+  margin: 0 0 16px 0;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.error-boundary-content p {
+  color: $highlight;
+  margin: 0 0 24px 0;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.error-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.retry-btn,
+.reload-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-btn {
+  background-color: $active;
+  color: white;
+  height: $button-height;
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $border-radius;
+  border: none;
+  cursor: pointer;
+  font-size: $font-md;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: color.adjust($active, $lightness: 10%);
+  }
+}
+
+.reload-btn {
+  background-color: $dark;
+  color: $font;
+  border: 1px solid $highlight;
+  height: $button-height;
+  padding: $spacing-sm $spacing-lg;
+  border-radius: $border-radius;
+  cursor: pointer;
+  font-size: $font-md;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background-color: $highlight;
+    color: $darkest;
+  }
+}
+
+.error-details {
+  text-align: left;
+  margin-top: $spacing-xl;
+  border-top: 1px solid $dark;
+  padding-top: $spacing-xl;
+}
+
+.error-details summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: $warning;
+  margin-bottom: 16px;
+  padding: 8px;
+  background-color: rgba($warning, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba($warning, 0.3);
+
+  &:hover {
+    background-color: rgba($warning, 0.15);
+  }
+}
+
+.error-stack {
+  background-color: $darkest;
+  border-radius: 6px;
+  padding: 16px;
+  border: 1px solid $dark;
+}
+
+.error-stack h4 {
+  color: $error;
+  margin: 0 0 8px 0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.error-stack pre {
+  background-color: rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  color: $font;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 0 0 16px 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 600px) {
+  .error-boundary-content {
+    padding: 24px;
+    margin: 0 12px;
+  }
+
+  .error-actions {
+    flex-direction: column;
+  }
+
+  .retry-btn,
+  .reload-btn {
+    width: 100%;
+  }
+}

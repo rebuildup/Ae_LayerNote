@@ -1,0 +1,140 @@
+@use '../variables.scss' as *;
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: $spacing-xs $spacing-lg;
+  background-color: $darkest;
+  border-top: 1px solid $dark;
+  font-size: $font-sm;
+  color: $highlight;
+  min-height: $button-height;
+}
+
+.status-bar__left,
+.status-bar__center,
+.status-bar__right {
+  display: flex;
+  align-items: center;
+  gap: $spacing-lg;
+}
+
+.status-bar__left {
+  flex: 1;
+}
+
+.status-bar__center {
+  flex: 0 0 auto;
+}
+
+.status-bar__right {
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.status-bar__mode {
+  font-weight: 500;
+  color: $font;
+  text-transform: capitalize;
+}
+
+.status-bar__error {
+  color: $error;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-bar__unsaved {
+  color: $warning;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.status-bar__last-saved {
+  color: $highlight;
+  font-size: 11px;
+}
+
+.status-bar__actions {
+  display: flex;
+  gap: $spacing-xs;
+}
+
+.status-bar__action {
+  background: none;
+  border: none;
+  color: $highlight;
+  cursor: pointer;
+  padding: $spacing-xs $spacing-sm;
+  border-radius: $border-radius;
+  font-size: $font-md;
+  transition: all 0.2s ease;
+  height: $button-height;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover:not(:disabled) {
+    background-color: $dark;
+    color: $font;
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.status-bar__selection {
+  color: $changed;
+  font-weight: 500;
+  font-size: 11px;
+  background-color: rgba($changed, 0.1);
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid rgba($changed, 0.3);
+}
+
+// Responsive adjustments
+@media (max-width: 900px) {
+  .status-bar {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .status-bar__left,
+  .status-bar__center,
+  .status-bar__right {
+    gap: 12px;
+  }
+
+  .status-bar__last-saved {
+    display: none;
+  }
+}
+
+@media (max-width: 600px) {
+  .status-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 8px 12px;
+    gap: 4px;
+    min-height: auto;
+  }
+
+  .status-bar__left,
+  .status-bar__center,
+  .status-bar__right {
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .status-bar__center {
+    order: -1;
+  }
+}

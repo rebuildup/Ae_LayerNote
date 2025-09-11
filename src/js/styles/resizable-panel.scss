@@ -1,0 +1,109 @@
+@use '../variables.scss' as *;
+
+.resizable-panel {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+
+  &--horizontal {
+    flex-direction: row;
+    min-width: 100px;
+    max-width: 800px;
+  }
+
+  &--vertical {
+    flex-direction: column;
+    min-height: 100px;
+    max-height: 600px;
+  }
+}
+
+.resizable-panel__content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.resize-handle {
+  background-color: transparent;
+  transition: background-color 0.2s ease;
+  position: relative;
+  z-index: 10;
+
+  &:hover,
+  &--active {
+    background-color: $active;
+  }
+
+  &--horizontal {
+    width: 4px;
+    cursor: col-resize;
+    border-left: 1px solid $dark;
+
+    &:hover::before,
+    &--active::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 2px;
+      height: 20px;
+      background-color: white;
+      border-radius: 1px;
+    }
+  }
+
+  &--vertical {
+    height: 4px;
+    cursor: row-resize;
+    border-top: 1px solid $dark;
+
+    &:hover::before,
+    &--active::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      width: 20px;
+      height: 2px;
+      background-color: white;
+      border-radius: 1px;
+    }
+  }
+}
+
+// Prevent text selection during resize
+.resizable-panel--resizing {
+  user-select: none;
+
+  * {
+    user-select: none;
+  }
+}
+
+// Responsive behavior
+@media (max-width: 900px) {
+  .resizable-panel--horizontal {
+    min-width: 80px;
+    max-width: 300px;
+  }
+}
+
+@media (max-width: 600px) {
+  .resize-handle {
+    display: none;
+  }
+
+  .resizable-panel {
+    &--horizontal {
+      width: 100% !important;
+    }
+
+    &--vertical {
+      height: auto !important;
+    }
+  }
+}

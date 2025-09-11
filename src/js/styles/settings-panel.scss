@@ -1,0 +1,250 @@
+@use '../variables.scss' as *;
+@use 'sass:color';
+
+.settings-panel {
+  background-color: $darker;
+  border-radius: 8px;
+  border: 1px solid $dark;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  max-width: 800px;
+  max-height: 80vh;
+  width: 90%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid $dark;
+  background-color: $darkest;
+
+  h2 {
+    margin: 0;
+    color: $font;
+    font-size: 18px;
+    font-weight: 600;
+  }
+}
+
+.settings-content {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  background-color: $darkest;
+  border-right: 1px solid $dark;
+  min-width: 160px;
+  padding: 16px 0;
+}
+
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  color: $highlight;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.2s ease;
+  font-size: 13px;
+
+  &:hover {
+    background-color: $dark;
+    color: $font;
+  }
+
+  &--active {
+    background-color: $active;
+    color: white;
+
+    &:hover {
+      background-color: color.adjust($active, $lightness: 10%);
+    }
+  }
+}
+
+.settings-tab-icon {
+  font-size: 16px;
+  min-width: 20px;
+}
+
+.settings-tab-label {
+  font-weight: 500;
+}
+
+.settings-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+}
+
+.settings-section {
+  h3 {
+    color: $font;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 20px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid $dark;
+  }
+}
+
+.setting-group {
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  label {
+    color: $font;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+
+    input[type='checkbox'] {
+      margin: 0;
+    }
+  }
+
+  input[type='text'],
+  input[type='number'],
+  select,
+  textarea {
+    background-color: $darkest;
+    border: 1px solid $dark;
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: $font;
+    font-size: 13px;
+    transition: border-color 0.2s ease;
+
+    &:focus {
+      outline: none;
+      border-color: $active;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  input[type='checkbox'] {
+    accent-color: $active;
+    width: 16px;
+    height: 16px;
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+    font-family: monospace;
+  }
+}
+
+.settings-button {
+  background-color: $active;
+  border: none;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: color.adjust($active, $lightness: 10%);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  &--danger {
+    background-color: $error;
+
+    &:hover:not(:disabled) {
+      background-color: color.adjust($error, $lightness: 10%);
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 700px) {
+  .settings-panel {
+    width: 95%;
+    max-height: 90vh;
+  }
+
+  .settings-content {
+    flex-direction: column;
+  }
+
+  .settings-tabs {
+    flex-direction: row;
+    min-width: auto;
+    border-right: none;
+    border-bottom: 1px solid $dark;
+    padding: 8px 16px;
+    overflow-x: auto;
+  }
+
+  .settings-tab {
+    flex-shrink: 0;
+    padding: 8px 16px;
+    border-radius: 4px;
+    margin-right: 8px;
+
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+
+  .settings-tab-label {
+    display: none;
+  }
+
+  .settings-body {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 500px) {
+  .settings-header {
+    padding: 16px 20px;
+  }
+
+  .setting-group {
+    margin-bottom: 16px;
+  }
+
+  .setting-group label {
+    font-size: 12px;
+  }
+
+  .setting-group input,
+  .setting-group select,
+  .setting-group textarea {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}

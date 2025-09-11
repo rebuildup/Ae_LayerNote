@@ -1,0 +1,181 @@
+@use '../variables.scss' as *;
+
+.menu-bar {
+  display: flex;
+  align-items: center;
+  background-color: $darkest;
+  border-bottom: 1px solid $dark;
+  height: $header-height;
+  padding: 0 $spacing-sm;
+  font-size: $font-sm;
+  position: relative;
+  z-index: 100;
+}
+
+.menu-container {
+  position: relative;
+}
+
+.menu-button {
+  background: none;
+  border: none;
+  color: $font;
+  cursor: pointer;
+  padding: $spacing-xs $spacing-md;
+  border-radius: $border-radius;
+  font-size: $font-sm;
+  transition: all 0.2s ease;
+  height: $button-height;
+
+  &:hover,
+  &--active {
+    background-color: $dark;
+  }
+
+  &--active {
+    background-color: $active;
+    color: white;
+  }
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background-color: $darker;
+  border: 1px solid $dark;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 200px;
+  padding: 4px 0;
+  z-index: 1000;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  color: $font;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+
+  &:hover:not(&--disabled) {
+    background-color: $active;
+    color: white;
+  }
+
+  &--disabled {
+    color: $highlight;
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  &--submenu {
+    padding-left: 32px;
+  }
+}
+
+.menu-item__label {
+  flex: 1;
+}
+
+.menu-item__shortcut {
+  font-size: 11px;
+  color: $highlight;
+  font-family: monospace;
+  margin-left: 16px;
+}
+
+.menu-item__arrow {
+  font-size: 10px;
+  margin-left: 8px;
+}
+
+.menu-separator {
+  height: 1px;
+  background-color: $dark;
+  margin: 4px 8px;
+}
+
+.submenu {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  background-color: $darker;
+  border: 1px solid $dark;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 180px;
+  padding: 4px 0;
+  z-index: 1001;
+}
+
+.menu-spacer {
+  flex: 1;
+}
+
+.menu-status {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: $highlight;
+  font-size: 12px;
+}
+
+.current-mode {
+  text-transform: capitalize;
+  color: $changed;
+  font-weight: 500;
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .menu-bar {
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .menu-button {
+    padding: 4px 8px;
+    font-size: 12px;
+  }
+
+  .menu-dropdown {
+    min-width: 160px;
+  }
+
+  .menu-item {
+    padding: 6px 12px;
+  }
+
+  .menu-item__shortcut {
+    display: none;
+  }
+
+  .menu-status {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .menu-bar {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
+
+  .menu-dropdown {
+    position: fixed;
+    top: 32px;
+    left: 8px;
+    right: 8px;
+    width: auto;
+    min-width: auto;
+  }
+}

@@ -1,0 +1,102 @@
+@use './variables.scss' as *;
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden; /* Prevent body scroll, let Monaco handle it */
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  width: 100%;
+}
+
+code {
+  font-family:
+    'Cascadia Code', 'Fira Code', 'JetBrains Mono', source-code-pro, Menlo,
+    Monaco, Consolas, 'Courier New', monospace;
+}
+
+.app {
+  height: 100vh;
+  width: 100vw;
+  background-color: #1e1e1e;
+  color: #ffffff;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font-size: 13px;
+  font-family: inherit;
+  background: transparent;
+  border: none;
+  color: #cccccc;
+  cursor: pointer;
+  outline: none;
+  user-select: none;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    color: #ffffff;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+label {
+  color: #cccccc;
+  font-size: 13px;
+}
+
+/* Loading indicator */
+.loading-indicator {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  color: #007acc;
+}
+
+/* Button groups */
+.button-group {
+  display: flex;
+  gap: 4px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 14px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #424242;
+  border-radius: 6px;
+  border: 3px solid #1e1e1e;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4f4f4f;
+}
+
+::-webkit-scrollbar-corner {
+  background: #1e1e1e;
+}

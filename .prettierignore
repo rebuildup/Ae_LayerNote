@@ -1,0 +1,22 @@
+# Node modules
+node_modules/
+
+# Build outputs
+dist/
+build/
+coverage/
+
+# Adobe CEP engine files with native syntax
+src/js/lib/cep/cep_engine_extensions.js
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.production
+
+
+
+
