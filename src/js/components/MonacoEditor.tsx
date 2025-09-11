@@ -9,6 +9,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
   language,
   onChange,
   onSave,
+  onFocusChange,
   options,
 }) => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -41,7 +42,28 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
       formatOnType: options.autoFormat,
       // Helps IME candidate window position correctly when parent has overflow/scroll
       fixedOverflowWidgets: true,
+      padding: {
+        top:
+          typeof (options as any).paddingTop === 'number'
+            ? (options as any).paddingTop
+            : 4,
+      },
     });
+
+    if (onFocusChange) {
+      // Text widget focus (strongest indicator of caret in editor)
+      editor.onDidFocusEditorText?.(() => onFocusChange(true));
+      editor.onDidBlurEditorText?.(() => onFocusChange(false));
+      // Fallbacks
+      editor.onDidFocusEditorWidget?.(() => onFocusChange(true));
+      editor.onDidBlurEditorWidget?.(() => onFocusChange(false));
+      // Initialize
+      try {
+        onFocusChange(editor.hasTextFocus());
+      } catch {
+        // ignore
+      }
+    }
   };
 
   const handleEditorChange = (newValue: string | undefined) => {
@@ -93,7 +115,7 @@ const MonacoEditor: React.FC<MonacoEditorProps> = ({
         options={{
           selectOnLineNumbers: true,
           roundedSelection: false,
-          readOnly: false,
+          readOnly: options.readOnly ?? false,
           cursorStyle: 'line',
           automaticLayout: true,
           fixedOverflowWidgets: true,

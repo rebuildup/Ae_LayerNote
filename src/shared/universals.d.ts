@@ -58,6 +58,8 @@ export interface LayerInfo {
   comment: string;
   index: number;
   selected: boolean;
+  layerType?: string;
+  locked?: boolean;
 }
 
 export interface PropertyInfo {

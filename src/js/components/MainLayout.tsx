@@ -6,7 +6,7 @@ import {
   LazySettingsPanel,
   LazyAboutModal,
 } from './LazyComponents';
-import SimpleEditorLayout from './SimpleEditorLayout';
+import EditorView from './EditorView';
 
 const MainLayout: React.FC = () => {
   const { state } = useAppContext();
@@ -16,7 +16,7 @@ const MainLayout: React.FC = () => {
     <div className="app">
       {uiState.isLoading && <LoadingIndicator />}
 
-      <SimpleEditorLayout />
+      <EditorView />
 
       {/* Modals */}
       {state.ui.activeModals.has('keyboard-shortcuts') && (

@@ -57,12 +57,26 @@ export const getAllLayers = (): LayerInfo[] => {
 
     for (let i = 1; i <= comp.numLayers; i++) {
       const layer = comp.layer(i);
+      let layerType = 'unknown';
+      try {
+        if (layer instanceof TextLayer) layerType = 'text';
+        else if (layer instanceof ShapeLayer) layerType = 'shape';
+        else if (layer instanceof CameraLayer) layerType = 'camera';
+        else if (layer instanceof LightLayer) layerType = 'light';
+        else if ((layer as any).nullLayer) layerType = 'null';
+        else if ((layer as any).hasVideo && (layer as any).source?.mainSource)
+          layerType = 'footage';
+        else if ((layer as any).adjustmentLayer) layerType = 'adjustment';
+        else layerType = 'av';
+      } catch (e) {}
       allLayers.push({
         id: layer.index.toString(),
         name: layer.name,
         comment: layer.comment || '',
         index: layer.index,
         selected: layer.selected,
+        layerType,
+        locked: (layer as any).locked === true,
       });
     }
 

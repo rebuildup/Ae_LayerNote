@@ -5,7 +5,7 @@ import { AppProvider } from '../contexts/AppContext';
 import { SettingsProvider } from '../contexts/SettingsContext';
 import ErrorBoundary from '../components/ErrorBoundary';
 import MainLayout from '../components/MainLayout';
-import AppIntegration from '../components/AppIntegration';
+import AppShell from '../components/AppShell';
 import '../lib/monaco-environment'; // Configure Monaco for CEP
 import './main.scss';
 
@@ -28,11 +28,11 @@ export const App = () => {
       <SettingsProvider>
         <AppProvider>
           <EditorProvider>
-            <AppIntegration>
+            <AppShell>
               <div className="app" style={{ backgroundColor: bgColor }}>
                 <MainLayout />
               </div>
-            </AppIntegration>
+            </AppShell>
           </EditorProvider>
         </AppProvider>
       </SettingsProvider>

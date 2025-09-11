@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSettings } from '../contexts/SettingsContext';
+import { cepBridge } from '../lib/cep-bridge';
 import {
   Note,
   NoteCategory,
@@ -12,6 +14,13 @@ import {
 const STORAGE_KEY = 'ae-code-editor-notes';
 const STORAGE_VERSION = 1;
 
+// File-system helpers using CEP fs if available
+const fs = typeof window !== 'undefined' && (window as any).cep?.fs;
+const pathJoin = (a: string, b: string) =>
+  a.endsWith('/') || a.endsWith('\\') ? a + b : a + '/' + b;
+const sanitizeFileName = (name: string) =>
+  name.replace(/[^a-zA-Z0-9-_\s\.]/g, '_');
+
 const DEFAULT_CATEGORIES: NoteCategory[] = [
   { id: 'general', name: 'General', color: '#007acc' },
   { id: 'ideas', name: 'Ideas', color: '#4caf50' },
@@ -24,6 +33,7 @@ const DEFAULT_CATEGORIES: NoteCategory[] = [
  * Hook for managing temporary notes with CEP persistent storage
  */
 export const useNotesManager = () => {
+  const { settings } = useSettings();
   const [state, setState] = useState<NotesState>({
     notes: [],
     categories: DEFAULT_CATEGORIES,
@@ -49,32 +59,68 @@ export const useNotesManager = () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
-      // Try CEP storage first, fallback to localStorage
-      let storedData: string | null = null;
-
-      if (typeof window !== 'undefined' && (window as any).cep) {
-        // CEP storage implementation
-        try {
-          // This would be implemented with actual CEP storage API
-          storedData = localStorage.getItem(STORAGE_KEY);
-        } catch (error) {
-          console.warn('CEP storage not available, using localStorage');
-          storedData = localStorage.getItem(STORAGE_KEY);
+      // FS-backed notes: read .md files from target folder
+      let targetFolder: string | undefined = settings.notes?.folderPath;
+      if (!targetFolder) {
+        const info = await cepBridge.getProjectInfo();
+        if (info.path) {
+          // Use project folder
+          targetFolder = info.path.replace(/\\[^\\/]+$/, '');
         }
-      } else {
-        storedData = localStorage.getItem(STORAGE_KEY);
       }
 
+      if (fs && targetFolder) {
+        await new Promise<void>(resolve => setTimeout(resolve, 0));
+        await new Promise<void>((resolve, reject) => {
+          fs.readdir(targetFolder!, (err: any, files?: string[]) => {
+            if (err) return reject(err);
+            const mdFiles = (files || []).filter(f => /\.md$/i.test(f));
+            const readTasks = mdFiles.map(
+              fileName =>
+                new Promise<Note>((res, rej) => {
+                  fs.readFile(
+                    pathJoin(targetFolder!, fileName),
+                    (e: any, data?: string) => {
+                      if (e) return rej(e);
+                      const base = fileName.replace(/\.md$/i, '');
+                      const now = new Date();
+                      res({
+                        id: `file_${fileName}`,
+                        title: base,
+                        content: data || '',
+                        createdAt: now,
+                        updatedAt: now,
+                        pinned: false,
+                      });
+                    }
+                  );
+                })
+            );
+            Promise.all(readTasks)
+              .then(notes => {
+                setState(prev => ({
+                  ...prev,
+                  notes,
+                  categories: prev.categories,
+                  isLoading: false,
+                }));
+                resolve();
+              })
+              .catch(reject);
+          });
+        });
+        return;
+      }
+
+      // Fallback to previous storage
+      const storedData = localStorage.getItem(STORAGE_KEY);
       if (storedData) {
         const parsedData: NotesStorageData = JSON.parse(storedData);
-
-        // Convert date strings back to Date objects
         const notes = parsedData.notes.map(note => ({
           ...note,
           createdAt: new Date(note.createdAt),
           updatedAt: new Date(note.updatedAt),
         }));
-
         setState(prev => ({
           ...prev,
           notes,
@@ -82,10 +128,7 @@ export const useNotesManager = () => {
           isLoading: false,
         }));
       } else {
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-        }));
+        setState(prev => ({ ...prev, isLoading: false }));
       }
     } catch (error) {
       setState(prev => ({
@@ -98,26 +141,36 @@ export const useNotesManager = () => {
 
   const saveNotesToStorage = useCallback(async () => {
     try {
+      // When FS is available and target folder set, write each note as markdown
+      let targetFolder: string | undefined = settings.notes?.folderPath;
+      if (!targetFolder) {
+        const info = await cepBridge.getProjectInfo();
+        if (info.path) targetFolder = info.path.replace(/\\[^\\/]+$/, '');
+      }
+
+      if (fs && targetFolder) {
+        for (const note of state.notes) {
+          const fileName = sanitizeFileName(
+            `${note.title || 'Untitled Note'}.md`
+          );
+          await new Promise<void>((resolve, reject) =>
+            fs.writeFile(
+              pathJoin(targetFolder!, fileName),
+              note.content || '',
+              (err: any) => (err ? reject(err) : resolve())
+            )
+          );
+        }
+        return;
+      }
+
+      // Fallback to local storage snapshot
       const dataToSave: NotesStorageData = {
         notes: state.notes,
         categories: state.categories,
         version: STORAGE_VERSION,
       };
-
-      const serializedData = JSON.stringify(dataToSave);
-
-      if (typeof window !== 'undefined' && (window as any).cep) {
-        // CEP storage implementation
-        try {
-          // This would be implemented with actual CEP storage API
-          localStorage.setItem(STORAGE_KEY, serializedData);
-        } catch (error) {
-          console.warn('CEP storage failed, using localStorage');
-          localStorage.setItem(STORAGE_KEY, serializedData);
-        }
-      } else {
-        localStorage.setItem(STORAGE_KEY, serializedData);
-      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
     } catch (error) {
       console.error('Failed to save notes:', error);
       setState(prev => ({
@@ -125,7 +178,7 @@ export const useNotesManager = () => {
         error: `Failed to save notes: ${error}`,
       }));
     }
-  }, [state.notes, state.categories]);
+  }, [state.notes, state.categories, settings.notes]);
 
   const generateId = useCallback(() => {
     return `note_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -152,9 +205,30 @@ export const useNotesManager = () => {
         selectedNoteId: newNote.id,
       }));
 
+      // Persist file if possible
+      (async () => {
+        try {
+          let targetFolder: string | undefined = settings.notes?.folderPath;
+          if (!targetFolder) {
+            const info = await cepBridge.getProjectInfo();
+            if (info.path) targetFolder = info.path.replace(/\\[^\\/]+$/, '');
+          }
+          if (fs && targetFolder) {
+            const fileName = sanitizeFileName(`${newNote.title}.md`);
+            await new Promise<void>((resolve, reject) =>
+              fs.writeFile(
+                pathJoin(targetFolder!, fileName),
+                newNote.content || '',
+                (err: any) => (err ? reject(err) : resolve())
+              )
+            );
+          }
+        } catch {}
+      })();
+
       return newNote;
     },
-    [generateId]
+    [generateId, settings.notes]
   );
 
   const updateNote = useCallback((request: UpdateNoteRequest): boolean => {
@@ -216,6 +290,29 @@ export const useNotesManager = () => {
         error: null,
       };
     });
+
+    // Also remove file if FS available
+    (async () => {
+      try {
+        let targetFolder: string | undefined = settings.notes?.folderPath;
+        if (!targetFolder) {
+          const info = await cepBridge.getProjectInfo();
+          if (info.path) targetFolder = info.path.replace(/\\[^\\/]+$/, '');
+        }
+        if (fs && targetFolder) {
+          const note = state.notes.find(n => n.id === noteId);
+          if (note) {
+            const fileName = sanitizeFileName(`${note.title}.md`);
+            await new Promise<void>((resolve, reject) =>
+              (window as any).cep.fs.deleteFile(
+                pathJoin(targetFolder!, fileName),
+                (err: any) => (err ? reject(err) : resolve())
+              )
+            );
+          }
+        }
+      } catch {}
+    })();
 
     return true;
   }, []);

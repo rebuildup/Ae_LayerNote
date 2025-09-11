@@ -43,6 +43,7 @@ export interface MonacoEditorProps {
   language: 'javascript' | 'plaintext' | 'markdown';
   onChange: (value: string) => void;
   onSave: () => void;
+  onFocusChange?: (focused: boolean) => void;
   options: {
     theme: 'vs-dark' | 'vs-light';
     fontSize: number;
@@ -50,6 +51,8 @@ export interface MonacoEditorProps {
     minimap: boolean;
     autoFormat: boolean;
     linting?: boolean; // Make linting optional
+    readOnly?: boolean;
+    paddingTop?: number;
   };
 }
 

@@ -80,6 +80,15 @@ export class CEPBridgeClient {
     listenTS('bridgeError', (data: CEPError) => {
       this.handleError(data);
     });
+
+    // Project info
+    listenTS('projectInfoResponse', (data: any) => {
+      this.handleResponse('getProjectInfo', data);
+    });
+    // Layers list (all layers in active comp)
+    listenTS('allLayersResponse', (data: LayerInfo[]) => {
+      this.handleResponse('getAllLayers', data);
+    });
   }
 
   /**
@@ -299,6 +308,23 @@ export class CEPBridgeClient {
   }
 
   /**
+   * Get all layers in the active composition
+   */
+  async getAllLayers(): Promise<LayerInfo[]> {
+    return new Promise((resolve, reject) => {
+      this.addResponseListener('getAllLayers', (data, error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(data);
+        }
+      });
+
+      evalTS('getAllLayers').catch(reject);
+    });
+  }
+
+  /**
    * Search expressions
    */
   async searchExpressions(
@@ -356,6 +382,19 @@ export class CEPBridgeClient {
       typeof (window as any).cep !== 'undefined' &&
       typeof evalTS === 'function'
     );
+  }
+
+  /**
+   * Get current project info (name, path, etc.)
+   */
+  async getProjectInfo(): Promise<{ name: string; path: string | null }> {
+    return new Promise((resolve, reject) => {
+      this.addResponseListener('getProjectInfo', (data, error) => {
+        if (error) reject(error);
+        else resolve(data);
+      });
+      evalTS('getProjectInfo').catch(reject);
+    });
   }
 
   /**

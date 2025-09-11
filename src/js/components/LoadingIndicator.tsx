@@ -1,5 +1,6 @@
 import React from 'react';
 import '../styles/loading-indicator.scss';
+import { LoaderCircle } from 'lucide-react';
 
 interface LoadingIndicatorProps {
   message?: string;
@@ -17,10 +18,8 @@ const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
       role="status"
       aria-live="polite"
     >
-      <div className="loading-indicator__spinner">
-        <div className="loading-indicator__dot" data-testid="loading-dot"></div>
-        <div className="loading-indicator__dot" data-testid="loading-dot"></div>
-        <div className="loading-indicator__dot" data-testid="loading-dot"></div>
+      <div className="loading-indicator__spinner" aria-hidden="true">
+        <LoaderCircle className="loading-indicator__icon" size={16} />
       </div>
       <div className="loading-indicator__message">{message}</div>
     </div>

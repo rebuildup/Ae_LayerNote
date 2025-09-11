@@ -70,6 +70,10 @@ export interface SearchSettings {
   maxHistoryItems: number;
 }
 
+export interface NotesSettings {
+  folderPath?: string; // Custom notes folder; default: AE project folder
+}
+
 export interface UserSettings {
   editor: EditorSettings;
   linting: LintingSettings;
@@ -77,6 +81,7 @@ export interface UserSettings {
   ui: UISettings;
   keyboard: KeyboardSettings;
   search: SearchSettings;
+  notes?: NotesSettings;
   version: string;
   lastUpdated: string;
 }
@@ -163,6 +168,10 @@ export const defaultSearchSettings: SearchSettings = {
   maxHistoryItems: 20,
 };
 
+export const defaultNotesSettings: NotesSettings = {
+  folderPath: undefined,
+};
+
 export const defaultUserSettings: UserSettings = {
   editor: defaultEditorSettings,
   linting: defaultLintingSettings,
@@ -170,6 +179,7 @@ export const defaultUserSettings: UserSettings = {
   ui: defaultUISettings,
   keyboard: defaultKeyboardSettings,
   search: defaultSearchSettings,
+  notes: defaultNotesSettings,
   version: '1.0.0',
   lastUpdated: new Date().toISOString(),
 };
@@ -185,6 +195,7 @@ export const validateSettings = (
     ui: { ...defaultUISettings, ...settings.ui },
     keyboard: { ...defaultKeyboardSettings, ...settings.keyboard },
     search: { ...defaultSearchSettings, ...settings.search },
+    notes: { ...defaultNotesSettings, ...(settings.notes || {}) },
     version: settings.version || defaultUserSettings.version,
     lastUpdated: new Date().toISOString(),
   };

@@ -1,6 +1,15 @@
 import React, { useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAppContext } from '../contexts/AppContext';
+import {
+  Code2,
+  Search,
+  Wand2,
+  Palette,
+  Keyboard,
+  NotebookText,
+  Cog,
+} from 'lucide-react';
 import '../styles/settings-panel.scss';
 
 type SettingsTab =
@@ -9,6 +18,7 @@ type SettingsTab =
   | 'formatting'
   | 'ui'
   | 'keyboard'
+  | 'notes'
   | 'advanced';
 
 const SettingsPanel: React.FC = () => {
@@ -18,6 +28,8 @@ const SettingsPanel: React.FC = () => {
     updateLintingSettings,
     updateFormattingSettings,
     updateUISettings,
+    updateSearchSettings,
+    dispatch,
     resetSettings,
     exportSettings,
     importSettings,
@@ -362,6 +374,36 @@ const SettingsPanel: React.FC = () => {
     </div>
   );
 
+  const renderNotesSettings = () => (
+    <div className="settings-section">
+      <h3>Notes Settings</h3>
+      <div className="setting-group">
+        <label>Notes Folder</label>
+        <input
+          type="text"
+          value={settings.notes?.folderPath || ''}
+          onChange={e =>
+            dispatch({
+              type: 'LOAD_SETTINGS',
+              payload: {
+                ...settings,
+                notes: {
+                  ...(settings.notes || {}),
+                  folderPath: e.target.value,
+                },
+              },
+            })
+          }
+          placeholder="Default: After Effects project folder"
+        />
+        <p className="setting-hint">
+          Leave empty to use the current AE project folder. Markdown files
+          (*.md) will be read/written here.
+        </p>
+      </div>
+    </div>
+  );
+
   const renderAdvancedSettings = () => (
     <div className="settings-section">
       <h3>Advanced Settings</h3>
@@ -412,6 +454,8 @@ const SettingsPanel: React.FC = () => {
         return renderFormattingSettings();
       case 'ui':
         return renderUISettings();
+      case 'notes':
+        return renderNotesSettings();
       case 'advanced':
         return renderAdvancedSettings();
       default:
@@ -420,11 +464,12 @@ const SettingsPanel: React.FC = () => {
   };
 
   const tabs = [
-    { id: 'editor' as const, label: 'Editor', icon: '⚡' },
-    { id: 'linting' as const, label: 'Linting', icon: '🔍' },
-    { id: 'formatting' as const, label: 'Formatting', icon: '✨' },
-    { id: 'ui' as const, label: 'UI', icon: '🎨' },
-    { id: 'advanced' as const, label: 'Advanced', icon: '⚙️' },
+    { id: 'editor' as const, label: 'Editor', icon: Code2 },
+    { id: 'linting' as const, label: 'Linting', icon: Search },
+    { id: 'formatting' as const, label: 'Formatting', icon: Wand2 },
+    { id: 'ui' as const, label: 'UI', icon: Palette },
+    { id: 'notes' as const, label: 'Notes', icon: NotebookText },
+    { id: 'advanced' as const, label: 'Advanced', icon: Cog },
   ];
 
   return (
@@ -445,7 +490,9 @@ const SettingsPanel: React.FC = () => {
                 className={`settings-tab ${activeTab === tab.id ? 'settings-tab--active' : ''}`}
                 onClick={() => setActiveTab(tab.id)}
               >
-                <span className="settings-tab-icon">{tab.icon}</span>
+                <span className="settings-tab-icon">
+                  <tab.icon size={16} />
+                </span>
                 <span className="settings-tab-label">{tab.label}</span>
               </button>
             ))}
