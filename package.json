@@ -76,7 +76,7 @@
     "babel-plugin-transform-scss": "^1.2.0",
     "babel-preset-env": "^1.7.0",
     "core-js": "3",
-    "cross-env": "^7.0.3",
+    "cross-env": "^10.0.0",
     "eslint": "^8.45.0",
     "eslint-plugin-import": "^2.27.5",
     "eslint-plugin-jsx-a11y": "^6.7.1",
