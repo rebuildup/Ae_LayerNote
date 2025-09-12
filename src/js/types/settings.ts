@@ -188,15 +188,48 @@ export const defaultUserSettings: UserSettings = {
 export const validateSettings = (
   settings: Partial<UserSettings>
 ): UserSettings => {
+  const editor = sanitizeEditor(settings.editor);
+  const linting = { ...defaultLintingSettings, ...settings.linting };
+  const formatting = { ...defaultFormattingSettings, ...settings.formatting };
+  const ui = { ...defaultUISettings, ...settings.ui };
+  const keyboard = { ...defaultKeyboardSettings, ...settings.keyboard };
+  const search = { ...defaultSearchSettings, ...settings.search };
+  const notes = { ...defaultNotesSettings, ...(settings.notes || {}) };
+
   return {
-    editor: { ...defaultEditorSettings, ...settings.editor },
-    linting: { ...defaultLintingSettings, ...settings.linting },
-    formatting: { ...defaultFormattingSettings, ...settings.formatting },
-    ui: { ...defaultUISettings, ...settings.ui },
-    keyboard: { ...defaultKeyboardSettings, ...settings.keyboard },
-    search: { ...defaultSearchSettings, ...settings.search },
-    notes: { ...defaultNotesSettings, ...(settings.notes || {}) },
+    editor,
+    linting,
+    formatting,
+    ui,
+    keyboard,
+    search,
+    notes,
     version: settings.version || defaultUserSettings.version,
     lastUpdated: new Date().toISOString(),
   };
 };
+
+function sanitizeEditor(
+  partial?: Partial<EditorSettings>
+): EditorSettings {
+  const merged: EditorSettings = {
+    ...defaultEditorSettings,
+    ...(partial || {}),
+  };
+
+  // theme: enum guard
+  if (merged.theme !== 'dark' && merged.theme !== 'light') {
+    merged.theme = defaultEditorSettings.theme;
+  }
+
+  // fontSize: basic range check (fallback if invalid)
+  if (
+    typeof merged.fontSize !== 'number' ||
+    !Number.isFinite(merged.fontSize) ||
+    merged.fontSize <= 0
+  ) {
+    merged.fontSize = defaultEditorSettings.fontSize;
+  }
+
+  return merged;
+}

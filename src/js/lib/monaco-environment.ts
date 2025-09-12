@@ -37,7 +37,3 @@ export const configureMonacoForCEP = () => {
 if (typeof window !== 'undefined' && window.cep) {
   configureMonacoForCEP();
 }
-
-
-
-

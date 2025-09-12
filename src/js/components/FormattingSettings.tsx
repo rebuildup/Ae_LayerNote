@@ -52,8 +52,9 @@ const FormattingSettings: React.FC<FormattingSettingsProps> = ({
           <h4>Indentation</h4>
 
           <div className="setting-row">
-            <label>Indent Style:</label>
+            <label htmlFor="indent-style">Indent Style:</label>
             <select
+              id="indent-style"
               value={localOptions.indentStyle}
               onChange={e =>
                 handleOptionChange(
@@ -68,8 +69,9 @@ const FormattingSettings: React.FC<FormattingSettingsProps> = ({
           </div>
 
           <div className="setting-row">
-            <label>Indent Size:</label>
+            <label htmlFor="indent-size">Indent Size:</label>
             <input
+              id="indent-size"
               type="number"
               min="1"
               max="8"
@@ -81,8 +83,9 @@ const FormattingSettings: React.FC<FormattingSettingsProps> = ({
           </div>
 
           <div className="setting-row">
-            <label>Tab Size:</label>
+            <label htmlFor="tab-size">Tab Size:</label>
             <input
+              id="tab-size"
               type="number"
               min="1"
               max="8"
@@ -99,8 +102,9 @@ const FormattingSettings: React.FC<FormattingSettingsProps> = ({
           <h4>Line Settings</h4>
 
           <div className="setting-row">
-            <label>Max Line Length:</label>
+            <label htmlFor="max-line-length">Max Line Length:</label>
             <input
+              id="max-line-length"
               type="number"
               min="40"
               max="200"
@@ -169,8 +173,9 @@ const FormattingSettings: React.FC<FormattingSettingsProps> = ({
           </div>
 
           <div className="setting-row">
-            <label>Quote Style:</label>
+            <label htmlFor="quote-style">Quote Style:</label>
             <select
+              id="quote-style"
               value={localOptions.quoteStyle}
               onChange={e =>
                 handleOptionChange(
@@ -179,8 +184,8 @@ const FormattingSettings: React.FC<FormattingSettingsProps> = ({
                 )
               }
             >
-              <option value="double">Double quotes (")</option>
-              <option value="single">Single quotes (')</option>
+              <option value="double">Double quotes (&quot;)</option>
+              <option value="single">Single quotes (&apos;)</option>
             </select>
           </div>
         </div>

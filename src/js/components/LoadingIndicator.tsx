@@ -19,6 +19,23 @@ const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
       aria-live="polite"
     >
       <div className="loading-indicator__spinner" aria-hidden="true">
+        {/* Animated dots for tests/UX */}
+        <span
+          className="loading-indicator__dot"
+          data-testid="loading-dot"
+          style={{ animationName: 'loading-bounce' }}
+        />
+        <span
+          className="loading-indicator__dot"
+          data-testid="loading-dot"
+          style={{ animationName: 'loading-bounce' }}
+        />
+        <span
+          className="loading-indicator__dot"
+          data-testid="loading-dot"
+          style={{ animationName: 'loading-bounce' }}
+        />
+        {/* Icon fallback */}
         <LoaderCircle className="loading-indicator__icon" size={16} />
       </div>
       <div className="loading-indicator__message">{message}</div>

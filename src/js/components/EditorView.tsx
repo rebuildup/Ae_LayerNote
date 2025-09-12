@@ -1,8 +1,8 @@
 import React, { useState, useCallback } from 'react';
 import { useAppContext, useCurrentMode } from '../contexts/AppContext';
 import MonacoEditor from './MonacoEditor';
-import NotesManager from './NotesManager';
 import { fsBridge } from '../lib/fs-bridge';
+import { selectFolder as boltSelectFolder } from '../lib/utils/bolt';
 import { cepBridge } from '../lib/cep-bridge';
 import {
   FileText,
@@ -13,8 +13,6 @@ import {
   Wand2,
   Square,
   File,
-} from 'lucide-react';
-import {
   Code,
   MessageSquare,
   StickyNote,
@@ -24,16 +22,17 @@ import {
   Save,
   Menu,
 } from 'lucide-react';
-import { useLayerOperations } from '../hooks/useCEPBridge';
+import { useLayerOperations, useExpressionOperations } from '../hooks/useCEPBridge';
 import type { LayerInfo } from '../../shared/universals';
 import '../styles/simple-editor-layout.scss';
 import PropertySelector from './PropertySelector';
-import { useExpressionOperations } from '../hooks/useCEPBridge';
 import type { PropertySelection } from '../types/expression';
+import { SidebarList, SidebarRow } from './SidebarList';
+import SidebarHeader from './SidebarHeader';
+import '../styles/sidebar-list.scss';
 
 const SimpleEditorLayout: React.FC = () => {
-  const { state, setMode, openModal, undo, redo, canUndo, canRedo } =
-    useAppContext();
+  const { setMode, openModal, undo, redo, canUndo, canRedo } = useAppContext();
   const currentMode = useCurrentMode();
   const [editorValue, setEditorValue] = useState(
     '// After Effects Expression Editor\n// Write your expressions here...\n\n'
@@ -48,9 +47,6 @@ const SimpleEditorLayout: React.FC = () => {
   const [baselineComment, setBaselineComment] = useState('');
   const [isCommentLoading, setIsCommentLoading] = useState(false);
   const [isSavingComment, setIsSavingComment] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>(
-    'idle'
-  );
 
   // Explorer + Tabs (for Notes files)
   const [isExplorerOpen, setIsExplorerOpen] = useState(false);
@@ -68,6 +64,7 @@ const SimpleEditorLayout: React.FC = () => {
   const [selectedProperty, setSelectedProperty] =
     useState<PropertySelection | null>(null);
   const [expressionText, setExpressionText] = useState<string>('');
+  const [expressionBaseline, setExpressionBaseline] = useState<string>('');
 
   // Comment mode: tabs for all layers in active comp
   const [allLayers, setAllLayers] = useState<LayerInfo[]>([]);
@@ -77,10 +74,15 @@ const SimpleEditorLayout: React.FC = () => {
   const resolveProjectRoot = React.useCallback(async () => {
     try {
       const info = await cepBridge.getProjectInfo();
+
       if (info.path) {
-        return info.path.replace(/\\[^\\/]+$/, '');
+        const base = info.path.replace(/\\[^\\/]+$/, '');
+
+        return base;
       }
-    } catch {}
+    } catch {
+      /* noop */
+    }
     return '';
   }, []);
 
@@ -90,15 +92,88 @@ const SimpleEditorLayout: React.FC = () => {
       const dir = await resolveProjectRoot();
       setRootDir(dir);
       if (dir) {
-        const files = await fsBridge.readdir(dir);
-        setEntries(files);
+        let files: string[] = [];
+        try {
+          const scan = await cepBridge.scanFolder(dir);
+          files = scan && scan.success ? scan.files || [] : [];
+        } catch {
+          /* noop */
+        }
+        if (files.length === 0) {
+          try {
+            files = await fsBridge.readdir(dir);
+          } catch {
+            /* noop */
+          }
+        }
+        setEntries(files || []);
       } else {
-        setEntries([]);
+        // Ask user to pick a folder as fallback using bolt.selectFolder (decodes file://)
+
+        const picked = await new Promise<string | null>(resolve => {
+          try {
+            boltSelectFolder('', 'Select notes folder', (path: string) =>
+              resolve(path)
+            );
+          } catch {
+            resolve(null);
+          }
+        });
+        if (picked) {
+          setRootDir(picked);
+          try {
+            let files: string[] = [];
+            try {
+              const scan = await cepBridge.scanFolder(picked);
+              files = scan && scan.success ? scan.files || [] : [];
+            } catch {
+              /* noop */
+            }
+            if (files.length === 0) {
+              try {
+                files = await fsBridge.readdir(picked);
+              } catch {
+                /* noop */
+              }
+            }
+            setEntries(files || []);
+          } catch (e) {
+            setEntries([]);
+          }
+        } else {
+          setEntries([]);
+        }
       }
     } finally {
       setIsFSLoading(false);
     }
   }, [resolveProjectRoot]);
+
+  const pickNotesFolder = React.useCallback(async (): Promise<
+    string | null
+  > => {
+    const picked = await new Promise<string | null>(resolve => {
+      try {
+        boltSelectFolder('', 'Select notes folder', (path: string) =>
+          resolve(path)
+        );
+      } catch {
+        resolve(null);
+      }
+    });
+    if (picked) {
+      setRootDir(picked);
+      try {
+        const files = await fsBridge.readdir(picked);
+        setEntries(files);
+      } catch {
+        setEntries([]);
+      }
+    }
+    return picked;
+  }, []);
+
+  // createNoteFile / renameNoteFile are defined after openFileTab to avoid TDZ issues
 
   React.useEffect(() => {
     // Load explorer entries on first open
@@ -109,7 +184,6 @@ const SimpleEditorLayout: React.FC = () => {
 
   // Poll active composition name
   React.useEffect(() => {
-    let timer: any;
     const load = async () => {
       try {
         const info = await cepBridge.getProjectInfo();
@@ -121,8 +195,8 @@ const SimpleEditorLayout: React.FC = () => {
       }
     };
     load();
-    timer = setInterval(load, 2000);
-    return () => timer && clearInterval(timer);
+    const timer = setInterval(load, 2000);
+    return () => clearInterval(timer);
   }, []);
 
   // Explorer resizer handlers
@@ -190,11 +264,9 @@ const SimpleEditorLayout: React.FC = () => {
         const text = comment || '';
         setLayerCommentText(text);
         setBaselineComment(text);
-        setSaveStatus('idle');
       } catch (_) {
         setLayerCommentText('');
         setBaselineComment('');
-        setSaveStatus('idle');
       } finally {
         setIsCommentLoading(false);
       }
@@ -207,12 +279,19 @@ const SimpleEditorLayout: React.FC = () => {
       if (currentMode === 'comment') {
         setLayerCommentText(value);
       } else if (currentMode === 'expression') {
+        // Prevent editing when selected property is read-only
+        if (
+          selectedProperty &&
+          (selectedProperty as any).canSetExpression === false
+        ) {
+          return;
+        }
         setExpressionText(value);
       } else {
         setEditorValue(value);
       }
     },
-    [currentMode]
+    [currentMode, selectedProperty]
   );
 
   const handleSave = useCallback(async () => {
@@ -221,16 +300,13 @@ const SimpleEditorLayout: React.FC = () => {
       const locked = allLayers.find(l => l.id === activeLayerId)?.locked;
       if (locked) {
         // Prevent saving when the layer is locked
-        setSaveStatus('idle');
         return;
       }
       setIsSavingComment(true);
-      setSaveStatus('saving');
       try {
         await setLayerComment(activeLayerId, layerComment);
         setBaselineComment(layerComment);
-        setSaveStatus('saved');
-        setTimeout(() => setSaveStatus('idle'), 1500);
+        // previously updated saveStatus; now rely on isSavingComment only
       } finally {
         setIsSavingComment(false);
       }
@@ -238,12 +314,46 @@ const SimpleEditorLayout: React.FC = () => {
     }
     if (currentMode === 'expression') {
       if (!selectedProperty) return;
+      if ((selectedProperty as any).canSetExpression === false) return;
       try {
         await setPropertyExpression(
           selectedProperty.propertyPath,
           expressionText
         );
-      } catch {}
+        // Re-fetch to confirm
+        try {
+          const refreshed = await getPropertyExpression(
+            selectedProperty.propertyPath
+          );
+          const next = refreshed || '';
+          setExpressionText(next);
+          setExpressionBaseline(next);
+        } catch {
+          // keep current text; baseline not updated
+        }
+      } catch {
+        /* noop */
+      }
+      return;
+    }
+    if (currentMode === 'note') {
+      if (!activeTabPath) return;
+      const isFileTab =
+        !activeTabPath.startsWith('layer://') &&
+        !activeTabPath.startsWith('prop://');
+      if (!isFileTab) return;
+      try {
+        const wr = await cepBridge.writeTextFile(activeTabPath, editorValue);
+        if (!wr || !wr.success) {
+          await fsBridge.writeFile(activeTabPath, editorValue);
+        }
+      } catch (e) {
+        try {
+          await fsBridge.writeFile(activeTabPath, editorValue);
+        } catch {
+          /* noop */
+        }
+      }
       return;
     }
     // For other modes (notes placeholder)
@@ -257,6 +367,7 @@ const SimpleEditorLayout: React.FC = () => {
     selectedProperty,
     expressionText,
     setPropertyExpression,
+    activeTabPath,
   ]);
 
   const modes = [
@@ -296,7 +407,7 @@ const SimpleEditorLayout: React.FC = () => {
   const getEditorPlaceholder = () => {
     switch (currentMode) {
       case 'expression':
-        return '// Expressions are not available yet.\n// This area is read-only for now.\n';
+        return '// Select a layer property from the side panel to load its expression.\n// Edit here and press Ctrl+S to apply to the selected property.\n';
       case 'comment':
         if (!activeLayerId) {
           return '# No layer selected\n\nSelect a layer in After Effects to edit its comment.';
@@ -394,27 +505,133 @@ const SimpleEditorLayout: React.FC = () => {
     setEditorValue(getEditorPlaceholder());
   }, [currentMode]);
 
-  const isModeUnavailable = false;
+  // const isModeUnavailable = false; // unused
+
+  // Ensure the side panel is open in expression mode
+  React.useEffect(() => {
+    if (currentMode === 'expression' || currentMode === 'note') {
+      setIsExplorerOpen(true);
+    }
+  }, [currentMode]);
 
   const isDirty = currentMode === 'comment' && layerComment !== baselineComment;
+  const isExpressionDirty =
+    currentMode === 'expression' && expressionText !== expressionBaseline;
 
-  const mdFiles = React.useMemo(
-    () => entries.filter(f => /\.md$/i.test(f)),
+  const noteFiles = React.useMemo(
+    () =>
+      entries.map(name => {
+        try {
+          return decodeURIComponent(name);
+        } catch {
+          return name;
+        }
+      }),
     [entries]
   );
   const openFileTab = React.useCallback(
-    (fileName: string) => {
+    async (fileName: string) => {
       if (!rootDir) return;
-      const full = `${rootDir}/${fileName}`;
+      const full = fsBridge.join(rootDir, fileName);
+      setMode('note');
       setOpenTabs(prev => (prev.includes(full) ? prev : [...prev, full]));
       setActiveTabPath(full);
+      try {
+        const content = await fsBridge.readFile(full);
+        setEditorValue(content || '');
+      } catch {
+        setEditorValue('');
+      }
     },
-    [rootDir]
+    [rootDir, setMode]
   );
-  const closeFileTab = React.useCallback((path: string) => {
-    setOpenTabs(prev => prev.filter(p => p !== path));
-    setActiveTabPath(prev => (prev === path ? null : prev));
-  }, []);
+  // const closeFileTab = React.useCallback((path: string) => {
+  //   setOpenTabs(prev => prev.filter(p => p !== path));
+  //   setActiveTabPath(prev => (prev === path ? null : prev));
+  // }, []);
+
+  const createNoteFile = React.useCallback(async () => {
+    try {
+      await cepBridge.debugAlert?.('CreateNote: start');
+      let dir = rootDir;
+      if (!dir) {
+        const picked = await pickNotesFolder();
+        dir = picked || rootDir;
+        if (!dir) {
+          await cepBridge.debugAlert?.('CreateNote: no dir');
+          return;
+        }
+      }
+      await cepBridge.debugAlert?.('CreateNote: dir=' + dir);
+      const existing = new Set(entries.map(e => e.toLowerCase()));
+      let name = 'note.md';
+      let idx = 1;
+      while (existing.has(name.toLowerCase())) {
+        name = `note ${idx++}.md`;
+      }
+      const fullPath = fsBridge.join(dir, name);
+      try {
+        // Prefer AE-side write to avoid sandbox limitations
+        const wr = await cepBridge.writeTextFile(fullPath, '');
+        if (!wr || !wr.success) {
+          await fsBridge.writeFile(fullPath, '');
+          await cepBridge.debugAlert?.('CreateNote: wrote (CEP) ' + fullPath);
+        } else {
+          await cepBridge.debugAlert?.('CreateNote: wrote (AE) ' + fullPath);
+        }
+      } catch (err) {
+        await cepBridge.debugAlert?.('CreateNote: write error ' + String(err));
+        throw err;
+      }
+      try {
+        const scan = await cepBridge.scanFolder(dir);
+        const files =
+          scan && scan.success ? scan.files || [] : await fsBridge.readdir(dir);
+        setEntries(files || []);
+        await cepBridge.debugAlert?.(
+          'CreateNote: refresh ok ' + (files ? files.length : 0)
+        );
+      } catch {
+        const files = await fsBridge.readdir(dir);
+        setEntries(files || []);
+        await cepBridge.debugAlert?.(
+          'CreateNote: refresh fallback ' + (files ? files.length : 0)
+        );
+      }
+      openFileTab(name);
+    } catch (e) {
+      console.error('Failed to create note file:', e);
+      await cepBridge.debugAlert?.('CreateNote: failed ' + String(e));
+    }
+  }, [rootDir, entries, openFileTab, pickNotesFolder]);
+
+  // const renameNoteFile = React.useCallback(
+  //   async (oldName: string) => {
+  //     try {
+  //       if (!rootDir) return;
+  //       const newName = prompt('Rename to:', oldName) || oldName;
+  //       if (!newName || newName === oldName) return;
+  //       const oldPath = `${rootDir}/${oldName}`;
+  //       const newPath = `${rootDir}/${newName}`;
+  //       const data = await fsBridge.readFile(oldPath);
+  //       await fsBridge.writeFile(newPath, data);
+  //       await fsBridge.deletePath(oldPath);
+  //       const scan = await cepBridge.scanFolder(rootDir);
+  //       const files =
+  //         scan && scan.success
+  //           ? scan.files || []
+  //           : await fsBridge.readdir(rootDir);
+  //       setEntries(files || []);
+  //       setOpenTabs(prev => prev.map(p => (p === oldPath ? newPath : p)));
+  //       setActiveTabPath(prev => (prev === oldPath ? newPath : prev));
+  //     } catch (e) {
+  //       console.error('Failed to rename note file:', e);
+  //     }
+  //   },
+  //   [rootDir]
+  // );
+
+  // createNoteFile / renameNoteFile are defined after openFileTab to avoid TDZ issues
 
   // Load all layers for comment mode and refresh periodically
   React.useEffect(() => {
@@ -427,7 +644,9 @@ const SimpleEditorLayout: React.FC = () => {
           l => (l.name || '').trim() !== 'LayerNodeSettings'
         );
         setAllLayers(visibleLayers);
-      } catch {}
+      } catch {
+        /* noop */
+      }
     };
     if (currentMode === 'comment') {
       loadAll();
@@ -436,37 +655,37 @@ const SimpleEditorLayout: React.FC = () => {
     return () => interval && clearInterval(interval);
   }, [currentMode]);
 
-  const handleSelectLayer = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setActiveLayerId(e.target.value || null);
-  };
+  // const handleSelectLayer = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  //   setActiveLayerId(e.target.value || null);
+  // };
 
-  const handleCommentSave = async () => {
-    if (!activeLayerId) return;
-    setIsSavingComment(true);
-    try {
-      await setLayerComment(activeLayerId, layerComment);
-    } finally {
-      setIsSavingComment(false);
-    }
-  };
+  // const handleCommentSave = async () => {
+  //   if (!activeLayerId) return;
+  //   setIsSavingComment(true);
+  //   try {
+  //     await setLayerComment(activeLayerId, layerComment);
+  //   } finally {
+  //     setIsSavingComment(false);
+  //   }
+  // };
 
-  const activeLayer = activeLayerId
-    ? selectedLayers.find(l => l.id === activeLayerId) || null
-    : null;
+  // const activeLayer = activeLayerId
+  //   ? selectedLayers.find(l => l.id === activeLayerId) || null
+  //   : null;
 
   return (
     <div className="simple-editor-layout">
       {/* Toolbar */}
       <div className="toolbar">
         <div className="toolbar__left">
-          <div
+          <button
+            type="button"
             className="toolbar__brand"
             onClick={() => setIsExplorerOpen(v => !v)}
             title="Toggle Explorer"
           >
             <Menu size={20} />
-            <span>Layer Note</span>
-          </div>
+          </button>
           <div className="toolbar__modes">
             {modes.map(mode => (
               <button
@@ -508,17 +727,36 @@ const SimpleEditorLayout: React.FC = () => {
               title={
                 currentMode === 'comment'
                   ? 'Save comment (Ctrl+S)'
-                  : 'Save (disabled)'
+                  : currentMode === 'expression'
+                    ? 'Apply expression (Ctrl+S)'
+                    : 'Save file (Ctrl+S)'
               }
-              disabled={
-                currentMode !== 'comment' ||
-                !activeLayerId ||
-                isCommentLoading ||
-                (currentMode === 'comment' &&
-                  !!allLayers.find(l => l.id === activeLayerId)?.locked) ||
-                isSavingComment ||
-                !isDirty
-              }
+              disabled={(() => {
+                if (currentMode === 'comment') {
+                  return (
+                    !activeLayerId ||
+                    isCommentLoading ||
+                    !!allLayers.find(l => l.id === activeLayerId)?.locked ||
+                    isSavingComment ||
+                    !isDirty
+                  );
+                }
+                if (currentMode === 'expression') {
+                  return (
+                    !selectedProperty ||
+                    (selectedProperty as any).canSetExpression === false ||
+                    !isExpressionDirty
+                  );
+                }
+                if (currentMode === 'note') {
+                  const isFileTab =
+                    !!activeTabPath &&
+                    !activeTabPath.startsWith('layer://') &&
+                    !activeTabPath.startsWith('prop://');
+                  return !isFileTab;
+                }
+                return false;
+              })()}
             >
               <Save size={16} />
               {currentMode === 'comment' &&
@@ -557,70 +795,103 @@ const SimpleEditorLayout: React.FC = () => {
               flexDirection: 'column',
             }}
           >
-            <div
-              className="explorer-header"
-              style={{
-                padding: '6px 8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              {currentMode === 'comment' ? (
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: '#ccc',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={activeCompName || 'Active Composition'}
-                >
-                  {activeCompName || 'Active Composition'}
-                </span>
-              ) : currentMode === 'expression' ? (
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: '#ccc',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={activeCompName || 'Active Composition'}
-                >
-                  {activeCompName || 'Active Composition'}
-                </span>
-              ) : (
-                <span
-                  style={{
-                    fontSize: 12,
-                    color: '#ccc',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                  title={rootDir || 'No project folder'}
-                >
-                  {rootDir || 'No project folder'}
-                </span>
-              )}
-              <button
-                className="explorer-refresh"
-                onClick={refreshExplorer}
-                disabled={isFSLoading}
-                title="Refresh"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#ccc',
-                  cursor: 'pointer',
-                }}
-              >
-                ↻
-              </button>
-            </div>
+            <SidebarHeader
+              titleNode={
+                currentMode === 'comment' ? (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: '#ccc',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      marginLeft: 6,
+                    }}
+                    title={activeCompName || 'Active Composition'}
+                  >
+                    {activeCompName || 'Active Composition'}
+                  </span>
+                ) : currentMode === 'expression' ? (
+                  <span
+                    style={{
+                      fontSize: 12,
+                      color: '#ccc',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      marginLeft: 6,
+                    }}
+                    title={
+                      (activeLayerId &&
+                        (selectedLayers.find(l => l.id === activeLayerId)
+                          ?.name ||
+                          '')) ||
+                      'No layer selected'
+                    }
+                  >
+                    {(activeLayerId &&
+                      (selectedLayers.find(l => l.id === activeLayerId)?.name ||
+                        '')) ||
+                      'No layer selected'}
+                  </span>
+                ) : (
+                  <button
+                    onClick={pickNotesFolder}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      color: '#ccc',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      textAlign: 'left',
+                      marginLeft: 6,
+                    }}
+                    title={rootDir || 'Select notes folder'}
+                  >
+                    {rootDir || 'Select notes folder'}
+                  </button>
+                )
+              }
+              rightActions={
+                <>
+                  {currentMode === 'note' && (
+                    <button
+                      onClick={createNoteFile}
+                      title="Create note (.md)"
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#ccc',
+                        cursor: 'pointer',
+                        padding: '0 4px',
+                        borderRadius: 0,
+                        fontSize: 12,
+                      }}
+                    >
+                      +
+                    </button>
+                  )}
+                  <button
+                    className="explorer-refresh"
+                    onClick={refreshExplorer}
+                    disabled={isFSLoading}
+                    title="Refresh"
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ccc',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ↻
+                  </button>
+                </>
+              }
+            />
             <div
               className="explorer-content"
               style={{ overflow: 'auto', padding: '4px 6px' }}
@@ -634,150 +905,108 @@ const SimpleEditorLayout: React.FC = () => {
                     No layers
                   </div>
                 ) : (
-                  <ul
-                    className="layer-list"
-                    style={{ listStyle: 'none', padding: 0, margin: 0 }}
-                  >
+                  <SidebarList>
                     {allLayers.map(l => (
-                      <li
+                      <SidebarRow
                         key={l.id}
-                        className="layer-item"
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 6,
-                          padding: '2px 6px 2px 16px',
-                          borderRadius: 4,
-                          backgroundColor:
-                            activeLayerId === l.id ? '#2a2f3a' : 'transparent',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            width: 16,
-                            justifyContent: 'center',
-                            color: l.locked
-                              ? '#6b7280'
-                              : activeLayerId === l.id
-                                ? '#fff'
-                                : '#9ca3af',
-                          }}
-                        >
-                          {(() => {
-                            switch (l.layerType) {
-                              case 'text':
-                                return <TypeIcon size={14} />;
-                              case 'shape':
-                                return <Shapes size={14} />;
-                              case 'camera':
-                                return <Camera size={14} />;
-                              case 'light':
-                                return <SunMedium size={14} />;
-                              case 'adjustment':
-                                return <Wand2 size={14} />;
-                              case 'null':
-                                return <Square size={14} />;
-                              case 'footage':
-                                return <FileText size={14} />;
-                              default:
-                                return <File size={14} />;
-                            }
-                          })()}
-                        </span>
-                        <button
-                          className="layer-name"
-                          onClick={() => {
-                            // Local switch without forcing AE to change selection
-                            setActiveLayerId(l.id);
-                            const layerTitle = l.name || `Layer ${l.id}`;
-                            const syntheticPath = `layer://${l.id}/${layerTitle}`;
-                            setOpenTabs(prev => {
-                              // If already open, keep tabs and just focus below
-                              if (prev.includes(syntheticPath)) return prev;
+                        selected={activeLayerId === l.id}
+                        onClick={() => {
+                          setActiveLayerId(l.id);
+                          const layerTitle = l.name || `Layer ${l.id}`;
+                          const syntheticPath = `layer://${l.id}/${layerTitle}`;
+                          setOpenTabs(prev => {
+                            if (prev.includes(syntheticPath)) return prev;
 
-                              if (isEditorFocused) {
-                                // When editor has focus, replace an existing layer tab instead of adding
-                                const isActiveLayerTab = !!(
-                                  activeTabPath &&
-                                  activeTabPath.startsWith('layer://')
-                                );
-                                const activeIdx = isActiveLayerTab
-                                  ? prev.indexOf(activeTabPath as string)
-                                  : -1;
+                            if (isEditorFocused) {
+                              const isActiveLayerTab = !!(
+                                activeTabPath &&
+                                activeTabPath.startsWith('layer://')
+                              );
+                              const activeIdx = isActiveLayerTab
+                                ? prev.indexOf(activeTabPath as string)
+                                : -1;
 
-                                if (activeIdx !== -1) {
-                                  const next = [...prev];
-                                  next[activeIdx] = syntheticPath;
-                                  // De-duplicate while preserving order
-                                  const seen = new Set<string>();
-                                  const out: string[] = [];
-                                  for (const p of next) {
-                                    if (p === syntheticPath && seen.has(p))
-                                      continue;
-                                    if (!seen.has(p)) {
-                                      seen.add(p);
-                                      out.push(p);
-                                    }
+                              if (activeIdx !== -1) {
+                                const next = [...prev];
+                                next[activeIdx] = syntheticPath;
+                                const seen = new Set<string>();
+                                const out: string[] = [];
+                                for (const p of next) {
+                                  if (p === syntheticPath && seen.has(p))
+                                    continue;
+                                  if (!seen.has(p)) {
+                                    seen.add(p);
+                                    out.push(p);
                                   }
-                                  return out;
                                 }
-
-                                // No active layer tab; replace the first existing layer tab if any
-                                const firstLayerIdx = prev.findIndex(p =>
-                                  p.startsWith('layer://')
-                                );
-                                if (firstLayerIdx !== -1) {
-                                  const next = [...prev];
-                                  next[firstLayerIdx] = syntheticPath;
-                                  const seen = new Set<string>();
-                                  const out: string[] = [];
-                                  for (const p of next) {
-                                    if (p === syntheticPath && seen.has(p))
-                                      continue;
-                                    if (!seen.has(p)) {
-                                      seen.add(p);
-                                      out.push(p);
-                                    }
-                                  }
-                                  return out;
-                                }
-
-                                // If no layer tabs exist yet, append
-                                return [...prev, syntheticPath];
+                                return out;
                               }
-                              // Not focused: append if missing
-                              return prev.includes(syntheticPath)
-                                ? prev
-                                : [...prev, syntheticPath];
-                            });
-                            // Focus the synthetic tab (existing or replaced)
-                            setActiveTabPath(syntheticPath);
-                          }}
-                          title={l.name}
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: l.locked
-                              ? '#9ca3af'
-                              : activeLayerId === l.id
-                                ? '#fff'
-                                : '#e5e7eb',
-                            cursor: 'pointer',
-                            padding: '4px 2px',
-                            flex: 1,
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            textAlign: 'left',
-                          }}
-                        >
-                          {l.name}
-                        </button>
-                      </li>
+
+                              const firstLayerIdx = prev.findIndex(p =>
+                                p.startsWith('layer://')
+                              );
+                              if (firstLayerIdx !== -1) {
+                                const next = [...prev];
+                                next[firstLayerIdx] = syntheticPath;
+                                const seen = new Set<string>();
+                                const out: string[] = [];
+                                for (const p of next) {
+                                  if (p === syntheticPath && seen.has(p))
+                                    continue;
+                                  if (!seen.has(p)) {
+                                    seen.add(p);
+                                    out.push(p);
+                                  }
+                                }
+                                return out;
+                              }
+
+                              return [...prev, syntheticPath];
+                            }
+                            return prev.includes(syntheticPath)
+                              ? prev
+                              : [...prev, syntheticPath];
+                          });
+                          setActiveTabPath(syntheticPath);
+                        }}
+                        leftSlot={
+                          <span
+                            style={{
+                              color: l.locked
+                                ? '#6b7280'
+                                : activeLayerId === l.id
+                                  ? '#fff'
+                                  : '#9ca3af',
+                            }}
+                          >
+                            {(() => {
+                              switch (l.layerType) {
+                                case 'text':
+                                  return <TypeIcon size={14} />;
+                                case 'shape':
+                                  return <Shapes size={14} />;
+                                case 'camera':
+                                  return <Camera size={14} />;
+                                case 'light':
+                                  return <SunMedium size={14} />;
+                                case 'adjustment':
+                                  return <Wand2 size={14} />;
+                                case 'null':
+                                  return <Square size={14} />;
+                                case 'footage':
+                                  return <FileText size={14} />;
+                                default:
+                                  return <File size={14} />;
+                              }
+                            })()}
+                          </span>
+                        }
+                        title={l.name}
+                      >
+                        {l.name}
+                      </SidebarRow>
                     ))}
-                  </ul>
+                  </SidebarList>
                 )
               ) : currentMode === 'expression' ? (
                 <div style={{ paddingRight: 2 }}>
@@ -790,12 +1019,23 @@ const SimpleEditorLayout: React.FC = () => {
                           const expr = await getPropertyExpression(
                             prop.propertyPath
                           );
-                          setExpressionText(expr || '');
+                          const next = expr || '';
+                          setExpressionText(next);
+                          setExpressionBaseline(next);
                         } catch {
                           setExpressionText('');
+                          setExpressionBaseline('');
                         }
+
+                        // Open/focus a prop tab like comment mode layer tabs
+                        const tabId = `prop://${prop.propertyPath}`;
+                        setOpenTabs(prev =>
+                          prev.includes(tabId) ? prev : [...prev, tabId]
+                        );
+                        setActiveTabPath(tabId);
                       } else {
                         setExpressionText('');
+                        setExpressionBaseline('');
                       }
                     }}
                   />
@@ -807,45 +1047,32 @@ const SimpleEditorLayout: React.FC = () => {
                 >
                   Loading files...
                 </div>
-              ) : mdFiles.length === 0 ? (
+              ) : noteFiles.length === 0 ? (
                 <div
                   className="empty-state"
                   style={{ color: '#aaa', fontSize: 12 }}
                 >
-                  No markdown files
+                  No files
                 </div>
               ) : (
-                <ul
-                  className="file-list"
-                  style={{ listStyle: 'none', padding: 0, margin: 0 }}
-                >
-                  {mdFiles.map(name => (
-                    <li
-                      key={name}
-                      className="file-item"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}
-                    >
-                      <button
-                        className="file-name"
-                        onClick={() => openFileTab(name)}
+                <SidebarList>
+                  {noteFiles.map(name => {
+                    const isText = /\.md$/i.test(name) || /\.txt$/i.test(name);
+                    return (
+                      <SidebarRow
+                        key={name}
+                        disabled={!isText}
+                        onClick={() => isText && openFileTab(name)}
+                        leftSlot={<FileText size={14} />}
                         title={name}
-                        style={{
-                          background: 'transparent',
-                          border: 'none',
-                          color: '#e5e7eb',
-                          cursor: 'pointer',
-                          padding: '4px 2px',
-                        }}
                       >
-                        {name}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
+                        <span style={{ color: isText ? '#e5e7eb' : '#9ca3af' }}>
+                          {name}
+                        </span>
+                      </SidebarRow>
+                    );
+                  })}
+                </SidebarList>
               )}
             </div>
           </div>
@@ -888,28 +1115,58 @@ const SimpleEditorLayout: React.FC = () => {
             }}
           >
             {
-              // VSCode-like tabs: show file tabs in Note mode; show layer tabs (layer://) in Comment mode
+              // VSCode-like tabs per mode
               openTabs
-                .filter(p =>
-                  currentMode === 'note'
-                    ? !p.startsWith('layer://')
-                    : p.startsWith('layer://')
-                )
+                .filter(p => {
+                  if (currentMode === 'note') {
+                    return (
+                      !p.startsWith('layer://') && !p.startsWith('prop://')
+                    );
+                  }
+                  if (currentMode === 'comment') {
+                    return p.startsWith('layer://');
+                  }
+                  // expression
+                  return p.startsWith('prop://');
+                })
                 .map(item => {
                   const isLayerTab = item.startsWith('layer://');
+                  const isPropTab = item.startsWith('prop://');
                   const isActive = activeTabPath === item;
                   const title = isLayerTab
                     ? item.split('/').slice(-1)[0]
-                    : item.split(/\\|\//).pop();
+                    : isPropTab
+                      ? item.replace('prop://', '').split('.').slice(-1)[0] ||
+                        'Property'
+                      : item.split(/\\|\//).pop();
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={item}
                       className={`editor-tab ${isActive ? 'active' : ''}`}
+                      role="tab"
+                      aria-selected={isActive}
+                      tabIndex={0}
                       onClick={() => {
                         setActiveTabPath(item);
                         if (isLayerTab) {
                           const m = item.match(/^layer:\/\/(\d+)\//);
                           if (m) setActiveLayerId(m[1]);
+                        } else if (isPropTab) {
+                          // Switching to a prop tab: ensure expression mode and keep current selection
+                          setMode('expression');
+                        }
+                      }}
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          setActiveTabPath(item);
+                          if (isLayerTab) {
+                            const m = item.match(/^layer:\/\/(\d+)\//);
+                            if (m) setActiveLayerId(m[1]);
+                          } else if (isPropTab) {
+                            setMode('expression');
+                          }
                         }
                       }}
                       onMouseDown={e => {
@@ -921,8 +1178,11 @@ const SimpleEditorLayout: React.FC = () => {
                             const sameGroup = openTabs.filter(
                               p =>
                                 (currentMode === 'note'
-                                  ? !p.startsWith('layer://')
-                                  : p.startsWith('layer://')) && p !== item
+                                  ? !p.startsWith('layer://') &&
+                                    !p.startsWith('prop://')
+                                  : currentMode === 'comment'
+                                    ? p.startsWith('layer://')
+                                    : p.startsWith('prop://')) && p !== item
                             );
                             const next = sameGroup.slice(-1)[0] || null;
                             setActiveTabPath(next);
@@ -1035,7 +1295,7 @@ const SimpleEditorLayout: React.FC = () => {
                       >
                         ×
                       </button>
-                    </div>
+                    </button>
                   );
                 })
             }
@@ -1050,42 +1310,31 @@ const SimpleEditorLayout: React.FC = () => {
               display: 'flex',
             }}
           >
-            <div
-              className={`editor-overlay ${isModeUnavailable ? 'editor-overlay--visible' : ''}`}
-              style={{ position: 'absolute', inset: 0 }}
-            >
-              {currentMode === 'expression' && (
-                <span>Expressions are not available yet.</span>
-              )}
-            </div>
+            {/* Removed deprecated expression mode overlay */}
             <div style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-              {currentMode === 'note' ? (
-                <NotesManager />
-              ) : (
-                <MonacoEditor
-                  value={
-                    currentMode === 'comment'
-                      ? layerComment
-                      : currentMode === 'expression'
-                        ? expressionText
-                        : editorValue
-                  }
-                  language={getEditorLanguage()}
-                  onChange={handleEditorChange}
-                  onSave={handleSave}
-                  onFocusChange={setIsEditorFocused}
-                  options={{
-                    theme: 'vs-dark',
-                    fontSize: 14,
-                    wordWrap: true,
-                    minimap: false,
-                    autoFormat: true,
-                    readOnly: (currentMode === 'comment' &&
-                      (!activeLayerId || isCommentLoading)) as any,
-                    paddingTop: 6,
-                  }}
-                />
-              )}
+              <MonacoEditor
+                value={
+                  currentMode === 'comment'
+                    ? layerComment
+                    : currentMode === 'expression'
+                      ? expressionText
+                      : editorValue
+                }
+                language={getEditorLanguage()}
+                onChange={handleEditorChange}
+                onSave={handleSave}
+                onFocusChange={setIsEditorFocused}
+                options={{
+                  theme: 'vs-dark',
+                  fontSize: 14,
+                  wordWrap: true,
+                  minimap: false,
+                  autoFormat: true,
+                  readOnly: (currentMode === 'comment' &&
+                    (!activeLayerId || isCommentLoading)) as any,
+                  paddingTop: 6,
+                }}
+              />
             </div>
           </div>
         </div>
@@ -1097,3 +1346,4 @@ const SimpleEditorLayout: React.FC = () => {
 };
 
 export default SimpleEditorLayout;
+

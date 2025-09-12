@@ -79,7 +79,6 @@ export const extendscriptConfig = (
         result.close();
       }
     });
-    watcher.close();
   };
 
   if (isProduction) {

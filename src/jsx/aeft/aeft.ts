@@ -9,6 +9,7 @@ import {
 export { helloError, helloStr, helloNum, helloArrayStr, helloObj, helloVoid };
 import { dispatchTS } from '../utils/utils';
 import * as CEPBridge from './cep-bridge';
+import * as AEAPI from './ae-api';
 import type { EventTS } from '../../shared/universals';
 
 export const helloWorld = () => {
@@ -82,4 +83,65 @@ export const getCompositionInfo = () => {
 
 export const getExpressionsStats = () => {
   CEPBridge.handleGetExpressionsStats();
+};
+
+// Debug: show ExtendScript alert from CEP
+export const debugAlert = (message: string) => {
+  try {
+    alert(String(message));
+  } catch (e) {}
+};
+
+// Scan a folder and return file names (notes helper)
+export const scanFolder = (folderPath: string) => {
+  try {
+    var f = new Folder(String(folderPath));
+    if (!f.exists) {
+      return { success: false, error: 'Folder not found: ' + folderPath };
+    }
+    var files = f.getFiles();
+    var names = [] as string[];
+    for (var i = 0; i < files.length; i++) {
+      try {
+        var file = files[i];
+        if (file instanceof File) {
+          names.push(String(file.name));
+        }
+      } catch (e) {}
+    }
+    return { success: true, files: names };
+  } catch (e) {
+    return { success: false, error: String(e) };
+  }
+};
+
+// Write a text file at an absolute path
+export const writeTextFile = (filePath: string, data: string) => {
+  try {
+    var path = String(filePath);
+    // Normalize common separators
+    path = path.replace(/\\/g, '\\');
+    var f = new File(path);
+    if (!f.parent || !f.parent.exists) {
+      // Try to create parent folder chain
+      try {
+        if (f.parent) f.parent.create();
+      } catch (e) {}
+    }
+    if (!f.open('w')) {
+      return { success: false, error: 'open failed: ' + f.error };
+    }
+    try {
+      f.write(String(data || ''));
+    } catch (e) {
+      try {
+        f.close();
+      } catch (ee) {}
+      return { success: false, error: 'write failed: ' + String(e) };
+    }
+    f.close();
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: String(e) };
+  }
 };

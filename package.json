@@ -3,6 +3,11 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
+  "engines": {
+    "node": ">=20",
+    "yarn": ">=1 <2"
+  },
+  "packageManager": "yarn@1.22.22",
   "scripts": {
     "dev": "vite",
     "watch": "tsc && vite build --watch true",
@@ -16,11 +21,12 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:ci": "jest --ci --coverage --watchAll=false",
-    "test:unit": "jest --testPathPattern=test/(?!integration|e2e)",
-    "test:integration": "jest --testPathPattern=test/integration",
-    "test:e2e": "jest --testPathPattern=test/e2e",
+    "test:unit": "jest --testPathPattern=\"test/(?!integration|e2e)\"",
+    "test:integration": "jest --testPathPattern=\"test/integration\"",
+    "test:e2e": "jest --testPathPattern=\"test/e2e\"",
     "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
     "lint": "eslint src/js --ext .ts,.tsx --report-unused-disable-directives --max-warnings 100",
+    "lint:ci": "eslint src/js --ext .ts,.tsx --report-unused-disable-directives",
     "lint:fix": "eslint src/js --ext .ts,.tsx --fix",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
@@ -28,8 +34,7 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "analyze": "npx vite-bundle-analyzer",
     "clean": "rimraf dist build coverage",
-    "validate": "npm run type-check && npm run lint && npm run test:ci",
-    "prepare": "npm run validate && npm run build"
+    "validate": "npm run type-check && npm run lint && npm run test:ci"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",

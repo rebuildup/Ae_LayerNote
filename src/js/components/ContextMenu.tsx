@@ -19,12 +19,7 @@ interface ContextMenuProps {
   visible: boolean;
 }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({
-  items,
-  position,
-  onClose,
-  visible,
-}) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClose, visible }) => {
   const menuRef = useRef<HTMLDivElement>(null);
   const [adjustedPosition, setAdjustedPosition] = useState(position);
 
@@ -38,14 +33,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     };
 
     const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
+      if (event.key === 'Escape') onClose();
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleEscape);
-
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleEscape);
@@ -54,81 +46,55 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 
   useEffect(() => {
     if (!visible || !menuRef.current) return;
-
     const menu = menuRef.current;
     const rect = menu.getBoundingClientRect();
-    const viewport = {
-      width: window.innerWidth,
-      height: window.innerHeight,
-    };
-
+    const viewport = { width: window.innerWidth, height: window.innerHeight };
     let { x, y } = position;
-
-    // Adjust horizontal position if menu would overflow
-    if (x + rect.width > viewport.width) {
-      x = viewport.width - rect.width - 10;
-    }
-
-    // Adjust vertical position if menu would overflow
-    if (y + rect.height > viewport.height) {
-      y = viewport.height - rect.height - 10;
-    }
-
-    // Ensure menu doesn't go off-screen
+    if (x + rect.width > viewport.width) x = viewport.width - rect.width - 10;
+    if (y + rect.height > viewport.height) y = viewport.height - rect.height - 10;
     x = Math.max(10, x);
     y = Math.max(10, y);
-
     setAdjustedPosition({ x, y });
   }, [position, visible]);
 
   const handleItemClick = (item: ContextMenuItem) => {
     if (item.disabled || item.separator) return;
-
-    if (item.action) {
-      item.action();
-      onClose();
-    }
+    item.action?.();
+    onClose();
   };
 
   const renderMenuItem = (item: ContextMenuItem) => {
-    if (item.separator) {
-      return <div key={item.id} className="context-menu-separator" />;
-    }
-
+    if (item.separator) return <div key={item.id} className="context-menu-separator" />;
     return (
-      <div
+      <button
         key={item.id}
-        className={`context-menu-item ${
-          item.disabled ? 'context-menu-item--disabled' : ''
-        }`}
+        type="button"
+        className={`context-menu-item ${item.disabled ? 'context-menu-item--disabled' : ''}`}
         onClick={() => handleItemClick(item)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleItemClick(item);
+          }
+        }}
+        disabled={!!item.disabled}
+        role="menuitem"
       >
-        {item.icon && (
-          <span className="context-menu-item__icon">{item.icon}</span>
-        )}
+        {item.icon && <span className="context-menu-item__icon">{item.icon}</span>}
         <span className="context-menu-item__label">{item.label}</span>
-        {item.shortcut && (
-          <span className="context-menu-item__shortcut">{item.shortcut}</span>
-        )}
-        {item.submenu && <span className="context-menu-item__arrow">▶</span>}
-      </div>
+        {item.shortcut && <span className="context-menu-item__shortcut">{item.shortcut}</span>}
+        {item.submenu && <span className="context-menu-item__arrow">›</span>}
+      </button>
     );
   };
 
   if (!visible) return null;
-
   return (
-    <div
-      ref={menuRef}
-      className="context-menu"
-      style={{
-        left: adjustedPosition.x,
-        top: adjustedPosition.y,
-      }}
-    >
+    <div ref={menuRef} className="context-menu" role="menu" style={{ left: adjustedPosition.x, top: adjustedPosition.y }}>
       {items.map(renderMenuItem)}
     </div>
   );
 };
 
 export default ContextMenu;
+

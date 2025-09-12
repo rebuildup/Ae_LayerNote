@@ -542,7 +542,8 @@ export const getLayerProperties = (layerId: string): PropertyInfo[] => {
     const layer = comp.layer(layerIndex);
     const properties: PropertyInfo[] = [];
 
-    collectLayerProperties(layer, '', properties);
+    // Prefix property paths with the numeric layer index so clients can resolve
+    collectLayerProperties(layer, String(layerIndex), properties);
 
     return properties;
   } catch (error) {
@@ -622,48 +623,54 @@ function getPropertyByPath(propertyPath: string): Property | null {
  * Helper function to collect properties from a layer
  */
 function collectLayerProperties(
-  prop: Property | PropertyGroup | Layer,
+  prop: any,
   basePath: string,
   properties: PropertyInfo[]
 ): void {
   try {
-    if (prop instanceof Property) {
-      const fullPath = basePath || prop.name;
+    // Property leaf
+    if (
+      prop &&
+      typeof prop.propertyValueType !== 'undefined' &&
+      prop.matchName
+    ) {
+      const fullPath = basePath || String(prop.name);
+      var canSet = false;
+      try {
+        // Some AE properties expose canSetExpression or allow write to expression
+        var expr = prop.expression;
+        prop.expression = expr; // no-op write to test writability
+        canSet = true;
+      } catch (e) {
+        canSet = false;
+      }
+
       properties.push({
         path: fullPath,
-        name: prop.name,
-        expression: prop.expression || '',
+        name: String(prop.name),
+        expression: String(prop.expression || ''),
         hasExpression: !!(
-          prop.expression && prop.expression.replace(/^\s+|\s+$/g, '')
+          prop.expression && String(prop.expression).replace(/^\s+|\s+$/g, '')
         ),
-        propertyType: getPropertyType(prop),
+        propertyType: getPropertyType(prop as any),
+        canSetExpression: canSet,
       });
-    } else if (
-      prop.constructor.name === 'PropertyGroup' ||
-      prop.constructor.name === 'Layer'
-    ) {
-      const numProps =
-        prop.constructor.name === 'Layer'
-          ? getLayerPropertyCount(prop as Layer)
-          : (prop as PropertyGroup).numProperties;
+      return;
+    }
 
-      for (let i = 1; i <= numProps; i++) {
-        try {
-          const childProp =
-            prop.constructor.name === 'Layer'
-              ? getLayerProperty(prop as Layer, i)
-              : (prop as PropertyGroup).property(i);
-
-          if (childProp) {
-            const childPath = basePath
-              ? `${basePath}.${childProp.name}`
-              : childProp.name;
-            collectLayerProperties(childProp, childPath, properties);
-          }
-        } catch {
-          // Skip properties that can't be accessed
-          continue;
-        }
+    // PropertyGroup or Layer (both behave like groups in AE ExtendScript)
+    const numProps =
+      prop && typeof prop.numProperties === 'number' ? prop.numProperties : 0;
+    for (let i = 1; i <= numProps; i++) {
+      try {
+        const childProp = prop.property(i);
+        if (!childProp) continue;
+        const childName = String(childProp.name);
+        const childPath = basePath ? `${basePath}.${childName}` : childName;
+        collectLayerProperties(childProp, childPath, properties);
+      } catch {
+        // Skip properties that can't be accessed
+        continue;
       }
     }
   } catch (error) {
@@ -708,13 +715,18 @@ function getPropertyType(property: Property): string {
  */
 function getLayerPropertyCount(layer: Layer): number {
   try {
-    // Common layer properties that might have expressions
+    // Common layer properties (expand to cover Text/Shape/Camera/Light/etc.)
     const commonProps = [
       'Transform',
       'Effects',
       'Masks',
       'Material Options',
       'Audio',
+      'Text',
+      'Layer Styles',
+      'Contents', // Shape layers
+      'Camera Options',
+      'Light Options',
     ];
 
     let count = 0;
@@ -747,6 +759,11 @@ function getLayerProperty(
       'Masks',
       'Material Options',
       'Audio',
+      'Text',
+      'Layer Styles',
+      'Contents',
+      'Camera Options',
+      'Light Options',
     ];
 
     let currentIndex = 0;

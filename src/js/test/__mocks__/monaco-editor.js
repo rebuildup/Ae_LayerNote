@@ -107,7 +107,3 @@ module.exports = {
     file: jest.fn(path => ({ path })),
   },
 };
-
-
-
-

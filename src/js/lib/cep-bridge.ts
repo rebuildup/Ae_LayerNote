@@ -11,9 +11,11 @@ import { evalTS, listenTS } from './utils/bolt';
  * CEP Bridge client for communicating with JSX layer
  */
 
+type Listener = (data: any, error?: CEPError) => void;
+
 export class CEPBridgeClient {
-  private eventListeners: Map<string, Function[]> = new Map();
-  private requestTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private eventListeners: Map<string, Listener[]> = new Map();
+  private requestTimeouts: Map<string, ReturnType<typeof setTimeout>> = new Map();
   private readonly REQUEST_TIMEOUT = 10000; // 10 seconds
 
   constructor() {
@@ -89,6 +91,25 @@ export class CEPBridgeClient {
     listenTS('allLayersResponse', (data: LayerInfo[]) => {
       this.handleResponse('getAllLayers', data);
     });
+
+    // Layer properties list
+    listenTS(
+      'layerPropertiesResponse',
+      (data: { layerId: string; properties: any[] }) => {
+        this.handleResponse(
+          `getLayerProperties_${data.layerId}`,
+          data.properties
+        );
+      }
+    );
+
+    // Property info
+    listenTS(
+      'propertyInfoResponse',
+      (data: { propertyPath: string; info: any }) => {
+        this.handleResponse(`getPropertyInfo_${data.propertyPath}`, data.info);
+      }
+    );
   }
 
   /**
@@ -146,10 +167,7 @@ export class CEPBridgeClient {
   /**
    * Add response listener with timeout
    */
-  private addResponseListener(
-    key: string,
-    callback: (data: any, error?: CEPError) => void
-  ): void {
+  private addResponseListener(key: string, callback: Listener): void {
     if (!this.eventListeners.has(key)) {
       this.eventListeners.set(key, []);
     }
@@ -325,6 +343,46 @@ export class CEPBridgeClient {
   }
 
   /**
+   * Get all properties for a layer
+   */
+  async getLayerProperties(layerId: string): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      this.addResponseListener(
+        `getLayerProperties_${layerId}`,
+        (data, error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(data);
+          }
+        }
+      );
+
+      evalTS('getLayerProperties', layerId).catch(reject);
+    });
+  }
+
+  /**
+   * Get property info
+   */
+  async getPropertyInfo(propertyPath: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+      this.addResponseListener(
+        `getPropertyInfo_${propertyPath}`,
+        (data, error) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(data);
+          }
+        }
+      );
+
+      evalTS('getPropertyInfo', propertyPath).catch(reject);
+    });
+  }
+
+  /**
    * Search expressions
    */
   async searchExpressions(
@@ -415,6 +473,36 @@ export class CEPBridgeClient {
         error:
           error instanceof Error ? error.message : 'Unknown connection error',
       };
+    }
+  }
+
+  /**
+   * Show ExtendScript-side alert for debugging
+   */
+  async debugAlert(message: string): Promise<void> {
+    await evalTS('debugAlert', message);
+  }
+
+  async scanFolder(
+    path: string
+  ): Promise<{ success: boolean; files?: string[]; error?: string }> {
+    try {
+      const res = await evalTS('scanFolder', path);
+      return res;
+    } catch (e) {
+      return { success: false, error: String(e) } as any;
+    }
+  }
+
+  async writeTextFile(
+    path: string,
+    data: string
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const res = await evalTS('writeTextFile', path, data);
+      return res;
+    } catch (e) {
+      return { success: false, error: String(e) } as any;
     }
   }
 }

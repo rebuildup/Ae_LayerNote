@@ -223,7 +223,9 @@ export const useNotesManager = () => {
               )
             );
           }
-        } catch {}
+        } catch {
+          /* noop */
+        }
       })();
 
       return newNote;
@@ -311,7 +313,9 @@ export const useNotesManager = () => {
             );
           }
         }
-      } catch {}
+      } catch {
+        /* noop */
+      }
     })();
 
     return true;

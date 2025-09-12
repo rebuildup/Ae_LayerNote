@@ -68,6 +68,7 @@ export interface PropertyInfo {
   expression: string;
   hasExpression: boolean;
   propertyType: string;
+  canSetExpression?: boolean;
 }
 
 export interface ExpressionInfo {

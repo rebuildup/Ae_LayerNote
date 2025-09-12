@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
 import { useSettings } from '../contexts/SettingsContext';
 import { useAppContext } from '../contexts/AppContext';
-import {
-  Code2,
-  Search,
-  Wand2,
-  Palette,
-  Keyboard,
-  NotebookText,
-  Cog,
-} from 'lucide-react';
+import { Code2, Search, Wand2, Palette, NotebookText, Cog } from 'lucide-react';
 import '../styles/settings-panel.scss';
 
 type SettingsTab =
@@ -28,7 +20,7 @@ const SettingsPanel: React.FC = () => {
     updateLintingSettings,
     updateFormattingSettings,
     updateUISettings,
-    updateSearchSettings,
+    // updateSearchSettings,
     dispatch,
     resetSettings,
     exportSettings,
@@ -92,8 +84,9 @@ const SettingsPanel: React.FC = () => {
       <h3>Editor Settings</h3>
 
       <div className="setting-group">
-        <label>Theme</label>
+        <label htmlFor="editor-theme">Theme</label>
         <select
+          id="editor-theme"
           value={settings.editor.theme}
           onChange={e =>
             updateEditorSettings({ theme: e.target.value as 'dark' | 'light' })
@@ -105,8 +98,9 @@ const SettingsPanel: React.FC = () => {
       </div>
 
       <div className="setting-group">
-        <label>Font Size</label>
+        <label htmlFor="editor-font-size">Font Size</label>
         <input
+          id="editor-font-size"
           type="number"
           min="10"
           max="24"
@@ -118,8 +112,9 @@ const SettingsPanel: React.FC = () => {
       </div>
 
       <div className="setting-group">
-        <label>Font Family</label>
+        <label htmlFor="editor-font-family">Font Family</label>
         <input
+          id="editor-font-family"
           type="text"
           value={settings.editor.fontFamily}
           onChange={e => updateEditorSettings({ fontFamily: e.target.value })}
@@ -127,8 +122,9 @@ const SettingsPanel: React.FC = () => {
       </div>
 
       <div className="setting-group">
-        <label>Tab Size</label>
+        <label htmlFor="editor-tab-size">Tab Size</label>
         <input
+          id="editor-tab-size"
           type="number"
           min="1"
           max="8"

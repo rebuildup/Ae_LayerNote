@@ -122,8 +122,9 @@ const LintingSettings: React.FC<LintingSettingsProps> = ({
           <h4>General Options</h4>
 
           <div className="setting-row">
-            <label>Max Complexity:</label>
+            <label htmlFor="max-complexity">Max Complexity:</label>
             <input
+              id="max-complexity"
               type="number"
               min="1"
               max="50"
@@ -135,8 +136,9 @@ const LintingSettings: React.FC<LintingSettingsProps> = ({
           </div>
 
           <div className="setting-row">
-            <label>Max Line Length:</label>
+            <label htmlFor="lint-max-line-length">Max Line Length:</label>
             <input
+              id="lint-max-line-length"
               type="number"
               min="40"
               max="200"

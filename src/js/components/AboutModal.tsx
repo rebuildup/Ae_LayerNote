@@ -17,13 +17,21 @@ const AboutModal: React.FC = () => {
   };
 
   return (
-    <div className="modal-backdrop" onClick={handleBackdropClick}>
+    <div
+      className="modal-backdrop"
+      onClick={handleBackdropClick}
+      onKeyDown={e => {
+        if (e.key === 'Escape') handleClose();
+      }}
+      tabIndex={0}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="about-title"
+    >
       <div className="about-modal">
         <div className="modal-header">
-          <h2>About AE Code Editor</h2>
-          <button className="modal-close" onClick={handleClose}>
-            ×
-          </button>
+          <h2 id="about-title">About AE Code Editor</h2>
+          <button className="modal-close" onClick={handleClose}>×</button>
         </div>
 
         <div className="modal-content">
@@ -126,7 +134,7 @@ const AboutModal: React.FC = () => {
 
         <div className="modal-footer">
           <p className="copyright">
-            © 2024 AE Code Editor Extension. Built for After Effects
+            c 2024 AE Code Editor Extension. Built for After Effects
             developers.
           </p>
         </div>

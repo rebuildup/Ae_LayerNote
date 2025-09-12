@@ -268,6 +268,36 @@ export const useExpressionOperations = () => {
     expressions,
     isLoading,
     error,
+    getLayerProperties: useCallback(async (layerId: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const props = await cepBridge.getLayerProperties(layerId);
+        return props;
+      } catch (err) {
+        const error = err as CEPError;
+        setError(error);
+        CEPErrorHandler.handleBridgeError(error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    }, []),
+    getPropertyInfo: useCallback(async (propertyPath: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const info = await cepBridge.getPropertyInfo(propertyPath);
+        return info;
+      } catch (err) {
+        const error = err as CEPError;
+        setError(error);
+        CEPErrorHandler.handleBridgeError(error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
+    }, []),
     getPropertyExpression,
     setPropertyExpression,
     validateExpression,

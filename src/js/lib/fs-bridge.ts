@@ -1,6 +1,6 @@
 // Lightweight FS bridge over CEP
 
-type Callback<T = any> = (err: any, data?: T) => void;
+// type Callback<T = any> = (err: any, data?: T) => void; // not used
 
 const cepFs: any =
   (typeof window !== 'undefined' && (window as any).cep?.fs) || null;
@@ -19,6 +19,40 @@ export const fsBridge = {
         err ? reject(err) : resolve(files || [])
       )
     );
+  },
+
+  async selectFolder(
+    dialogTitle: string = 'Select folder'
+  ): Promise<string | null> {
+    const fsAny: any = cepFs;
+    if (!fsAny) return null;
+    try {
+      if (typeof fsAny.showOpenDialogEx === 'function') {
+        const res = fsAny.showOpenDialogEx(true, true, dialogTitle, '', []);
+        if (
+          res &&
+          res.err === 0 &&
+          Array.isArray(res.data) &&
+          res.data.length > 0
+        ) {
+          return res.data[0];
+        }
+      } else if (typeof fsAny.showOpenDialog === 'function') {
+        const res = fsAny.showOpenDialog(true);
+        if (
+          res &&
+          res.err === 0 &&
+          Array.isArray(res.data) &&
+          res.data.length > 0
+        ) {
+          return res.data[0];
+        }
+      }
+    } catch (e) {
+      // swallow and return null to indicate no selection
+      return null;
+    }
+    return null;
   },
 
   async readFile(path: string): Promise<string> {
@@ -52,12 +86,8 @@ export const fsBridge = {
       );
     }
     // Fallback: create .keep file to force folder creation if available in env
-    try {
-      await fsBridge.writeFile(join(dirPath, '.keep'), '');
-      await fsBridge.deletePath(join(dirPath, '.keep'));
-    } catch (e) {
-      throw e;
-    }
+    await fsBridge.writeFile(join(dirPath, '.keep'), '');
+    await fsBridge.deletePath(join(dirPath, '.keep'));
   },
 
   join,

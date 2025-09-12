@@ -8,16 +8,16 @@ import '@testing-library/jest-dom';
 // Mock CEP environment
 const mockCEP = {
   fs: {
-    writeFile: jest.fn((path: string, data: string, callback: Function) => {
+    writeFile: jest.fn((path: string, data: string, callback: (err: Error | null, res?: any) => void) => {
       callback(null, 'success');
     }),
-    readFile: jest.fn((path: string, callback: Function) => {
+    readFile: jest.fn((path: string, callback: (err: Error | null, res?: any) => void) => {
       callback(null, '{}');
     }),
-    deleteFile: jest.fn((path: string, callback: Function) => {
+    deleteFile: jest.fn((path: string, callback: (err: Error | null) => void) => {
       callback(null);
     }),
-    readdir: jest.fn((path: string, callback: Function) => {
+    readdir: jest.fn((path: string, callback: (err: Error | null, res?: any[]) => void) => {
       callback(null, []);
     }),
     getDataFolder: jest.fn(() => '/mock/data/folder'),
@@ -32,6 +32,7 @@ const mockCEP = {
 Object.defineProperty(window, 'cep', {
   value: mockCEP,
   writable: true,
+  configurable: true,
 });
 
 // Mock window.cep_node
@@ -42,6 +43,7 @@ Object.defineProperty(window, 'cep_node', {
     },
   },
   writable: true,
+  configurable: true,
 });
 
 // Mock Monaco Editor

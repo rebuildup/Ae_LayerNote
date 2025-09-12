@@ -4,7 +4,7 @@
  */
 
 import React, { ReactElement } from 'react';
-import { render, RenderOptions, RenderResult } from '@testing-library/react';
+import { render, RenderOptions } from '@testing-library/react';
 import { AppProvider } from '../contexts/AppContext';
 import { SettingsProvider } from '../contexts/SettingsContext';
 import { EditorProvider } from '../contexts/EditorContext';
@@ -111,29 +111,30 @@ export const flushPromises = () => {
 export const mockStorageSuccess = () => {
   const mockCEP = (window as any).cep;
   mockCEP.fs.writeFile.mockImplementation(
-    (path: string, data: string, callback: Function) => {
+    (path: string, data: string, callback: (err: Error | null, res?: any) => void) => {
       callback(null, 'success');
     }
   );
-  mockCEP.fs.readFile.mockImplementation((path: string, callback: Function) => {
-    callback(null, data || '{}');
+  mockCEP.fs.readFile.mockImplementation((path: string, callback: (err: Error | null, res?: any) => void) => {
+    // 既定は保存なしとして扱う（SettingsContext の初期ロードと相性が良い）
+    callback(null, 'null');
   });
 };
 
 export const mockStorageError = (errorMessage: string = 'Storage error') => {
   const mockCEP = (window as any).cep;
   mockCEP.fs.writeFile.mockImplementation(
-    (path: string, data: string, callback: Function) => {
+    (path: string, data: string, callback: (err: Error | null, res?: any) => void) => {
       callback(new Error(errorMessage));
     }
   );
-  mockCEP.fs.readFile.mockImplementation((path: string, callback: Function) => {
+  mockCEP.fs.readFile.mockImplementation((path: string, callback: (err: Error | null, res?: any) => void) => {
     callback(new Error(errorMessage));
   });
 };
 
 // Component test helpers
-export const getByTestId = (container: HTMLElement, testId: string) => {
+export const getByTestIdStrict = (container: HTMLElement, testId: string) => {
   const element = container.querySelector(`[data-testid="${testId}"]`);
   if (!element) {
     throw new Error(`Element with testId "${testId}" not found`);
@@ -141,10 +142,10 @@ export const getByTestId = (container: HTMLElement, testId: string) => {
   return element;
 };
 
-export const queryByTestId = (container: HTMLElement, testId: string) => {
+export const queryByTestIdStrict = (container: HTMLElement, testId: string) => {
   return container.querySelector(`[data-testid="${testId}"]`);
 };
 
-// Re-export everything from React Testing Library
-export * from '@testing-library/react';
+// Re-export selected helpers from React Testing Library (avoid render conflicts)
+export { screen, fireEvent, within, act, waitFor, cleanup } from '@testing-library/react';
 export { customRender as render };

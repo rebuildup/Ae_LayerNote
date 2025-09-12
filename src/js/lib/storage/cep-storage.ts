@@ -138,36 +138,28 @@ class CEPStorage {
       if (window.cep && window.cep.fs) {
         // List and delete all files in storage directory
         const storageDir = this.getStorageDirectory();
-        await new Promise<void>((resolve, reject) => {
+        await new Promise<void>(resolve => {
           window.cep.fs.readdir(storageDir, (err: any, files: string[]) => {
             if (err) {
-              resolve(); // Directory might not exist
+              resolve(); // ディレクトリがない場合は何もしない
               return;
             }
 
-            const deletePromises = files
-              .filter(file =>
-                file.startsWith(`${this.namespace}.${this.version}.`)
-              )
-              .map(
-                file =>
-                  new Promise<void>((deleteResolve, deleteReject) => {
-                    window.cep.fs.deleteFile(
-                      `${storageDir}/${file}`,
-                      (deleteErr: any) => {
-                        if (deleteErr && deleteErr.err !== 2) {
-                          deleteReject(deleteErr);
-                        } else {
-                          deleteResolve();
-                        }
-                      }
-                    );
-                  })
-              );
+            const targets = files.filter(file =>
+              file.startsWith(`${this.namespace}.${this.version}.`)
+            );
 
-            Promise.all(deletePromises)
-              .then(() => resolve())
-              .catch(reject);
+            const deletions = targets.map(
+              file =>
+                new Promise<void>(deleteResolve => {
+                  window.cep.fs.deleteFile(`${storageDir}/${file}`,(deleteErr: any) => {
+                    // clear はベストエフォート。エラーでも続行
+                    deleteResolve();
+                  });
+                })
+            );
+
+            Promise.allSettled(deletions).then(() => resolve());
           });
         });
       } else {
@@ -205,9 +197,13 @@ class CEPStorage {
               .filter(file =>
                 file.startsWith(`${this.namespace}.${this.version}.`)
               )
-              .map(file =>
-                file.replace(`${this.namespace}.${this.version}.`, '')
-              );
+              .map(file => {
+                const withoutPrefix = file.replace(
+                  `${this.namespace}.${this.version}.`,
+                  ''
+                );
+                return withoutPrefix.replace(/\.json$/i, '');
+              });
 
             resolve(keys);
           });

@@ -48,7 +48,13 @@ if (action) runAction(config, action);
 export default defineConfig({
   plugins: [react(), cep(config)],
   resolve: {
-    alias: [{ find: '@esTypes', replacement: path.resolve(__dirname, 'src') }],
+    alias: [
+      // Align with tsconfig-build path mapping
+      {
+        find: '@esTypes',
+        replacement: path.resolve(__dirname, 'src/js/lib/cep/es-types'),
+      },
+    ],
   },
   root,
   clearScreen: false,
