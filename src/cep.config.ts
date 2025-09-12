@@ -1,5 +1,6 @@
 import { CEP_Config } from 'vite-cep-plugin';
-import { version } from '../package.json';
+// Avoid importing package.json in Vite config runtime; hardcode or use env
+const version = '0.0.1';
 
 const config: CEP_Config = {
   version,
@@ -14,10 +15,10 @@ const config: CEP_Config = {
   hosts: [{ name: 'AEFT', version: '[0.0,99.9]' }],
 
   type: 'Panel',
-  iconDarkNormal: './src/assets/light-icon.png',
-  iconNormal: './src/assets/dark-icon.png',
-  iconDarkNormalRollOver: './src/assets/light-icon.png',
-  iconNormalRollOver: './src/assets/dark-icon.png',
+  iconDarkNormal: './src/js/assets/built-with-bolt-cep.png',
+  iconNormal: './src/js/assets/built-with-bolt-cep.png',
+  iconDarkNormalRollOver: './src/js/assets/built-with-bolt-cep.png',
+  iconNormalRollOver: './src/js/assets/built-with-bolt-cep.png',
   parameters: ['--v=0', '--enable-nodejs', '--mixed-context'],
   width: 500,
   height: 550,

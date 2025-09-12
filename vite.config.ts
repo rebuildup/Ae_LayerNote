@@ -5,7 +5,11 @@ import react from '@vitejs/plugin-react';
 import { cep, runAction } from 'vite-cep-plugin';
 import cepConfig from './src/cep.config';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { extendscriptConfig } from './vite.es.config';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const extensions = ['.js', '.ts', '.tsx'];
 

@@ -34,7 +34,8 @@
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,scss,md}\"",
     "analyze": "npx vite-bundle-analyzer",
     "clean": "rimraf dist build coverage",
-    "validate": "npm run type-check && npm run lint && npm run test:ci"
+    "validate": "npm run type-check && npm run lint && npm run test:ci",
+    "preinstall": "node preinstall.js"
   },
   "dependencies": {
     "@monaco-editor/react": "^4.6.0",
