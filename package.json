@@ -95,7 +95,7 @@
     "rollup-plugin-scss": "^4.0.1",
     "sass": "^1.89.1",
     "source-map": "^0.7.4",
-    "ts-jest": "^29.1.0",
+    "ts-jest": "^29.4.5",
     "types-for-adobe": "^7.2.3",
     "types-for-adobe-extras": "^0.0.9",
     "typescript": "^5.8.3",
